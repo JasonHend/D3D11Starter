@@ -5,6 +5,18 @@
 
 #include <sstream>
 
+//Include ImGui using the Win32 backend
+//Needed before namespace
+#include "ImGui/imgui_impl_win32.h"
+
+//Create the handler function
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
+	HWND hWnd,
+	UINT msg,
+	WPARAM wParam,
+	LPARAM lParam
+	);
+
 namespace Window
 {
 	// Annonymous namespace to hold variables
@@ -253,6 +265,10 @@ void Window::CreateConsoleWindow(int bufferLines, int bufferColumns, int windowL
 // --------------------------------------------------------
 LRESULT Window::ProcessMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	//Call the message handler for ImGui
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
+		return true;
+
 	// Check the incoming message and handle any we care about
 	switch (uMsg)
 	{

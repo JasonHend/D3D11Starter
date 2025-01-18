@@ -11,6 +11,11 @@
 #pragma comment(lib, "d3dcompiler.lib")
 #include <d3dcompiler.h>
 
+//Include ImGui headers
+#include "ImGui/imgui.h"
+#include "ImGui/imgui_impl_dx11.h"
+#include "ImGui/imgui_impl_win32.h"
+
 // For the DirectX Math library
 using namespace DirectX;
 
@@ -25,6 +30,15 @@ void Game::Initialize()
 	//  - You'll be expanding and/or replacing these later
 	LoadShaders();
 	CreateGeometry();
+
+	//Initialize ImGui with it's backends
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGui_ImplWin32_Init(Window::Handle());
+	ImGui_ImplDX11_Init(Graphics::Device.Get(), Graphics::Context.Get());
+
+	//Style for ImGui (I always use dark mode)
+	ImGui::StyleColorsDark();
 
 	// Set initial graphics API state
 	//  - These settings persist until we change them
@@ -58,7 +72,9 @@ void Game::Initialize()
 // --------------------------------------------------------
 Game::~Game()
 {
-
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 }
 
 
@@ -240,6 +256,9 @@ void Game::OnResize()
 // --------------------------------------------------------
 void Game::Update(float deltaTime, float totalTime)
 {
+	//Call helper method to update UI
+	UpdateUIContext(deltaTime);
+
 	// Example input checking: Quit if the escape key is pressed
 	if (Input::KeyDown(VK_ESCAPE))
 		Window::Quit();
@@ -291,6 +310,10 @@ void Game::Draw(float deltaTime, float totalTime)
 	// - These should happen exactly ONCE PER FRAME
 	// - At the very end of the frame (after drawing *everything*)
 	{
+		//Render UI at the end of frame
+		ImGui::Render(); //Turn data into triangles to draw
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); //Draw triangles
+
 		// Present at the end of the frame
 		bool vsync = Graphics::VsyncState();
 		Graphics::SwapChain->Present(
@@ -305,5 +328,26 @@ void Game::Draw(float deltaTime, float totalTime)
 	}
 }
 
+// --------------------------------------------------------
+// Pass values in to ImGui and reset/call frames
+// --------------------------------------------------------
+void Game::UpdateUIContext(float deltaTime)
+{
+	//Send new data to ImGui
+	ImGuiIO& io = ImGui::GetIO();
+	io.DeltaTime = deltaTime;
+	io.DisplaySize.x = (float)Window::Width();
+	io.DisplaySize.y = (float)Window::Height();
 
+	//Reset the frame
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
 
+	//Reset input captures
+	Input::SetKeyboardCapture(io.WantCaptureKeyboard);
+	Input::SetMouseCapture(io.WantCaptureMouse);
+
+	//Show demo window
+	ImGui::ShowDemoWindow();
+}

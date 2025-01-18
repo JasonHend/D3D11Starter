@@ -17,6 +17,7 @@ public:
 	void Update(float deltaTime, float totalTime);
 	void Draw(float deltaTime, float totalTime);
 	void OnResize();
+	void UpdateUIContext(float deltaTime);
 
 private:
 
