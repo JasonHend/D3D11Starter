@@ -61,6 +61,12 @@ void Game::Initialize()
 		Graphics::Context->VSSetShader(vertexShader.Get(), 0, 0);
 		Graphics::Context->PSSetShader(pixelShader.Get(), 0, 0);
 	}
+
+	//Initialize background color
+	backgroundColor = new float[4] {0.4f, 0.6f, 0.75f, 0.0f};
+
+	//Initialize default vsync state out of loop to be used in UI
+	vsync = Graphics::VsyncState();
 }
 
 
@@ -72,6 +78,10 @@ void Game::Initialize()
 // --------------------------------------------------------
 Game::~Game()
 {
+	//Clean up memory
+	delete backgroundColor;
+	backgroundColor = nullptr;
+
 	ImGui_ImplDX11_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
@@ -258,6 +268,7 @@ void Game::Update(float deltaTime, float totalTime)
 {
 	//Call helper method to update UI
 	UpdateUIContext(deltaTime);
+	CustomizeUIContext();
 
 	// Example input checking: Quit if the escape key is pressed
 	if (Input::KeyDown(VK_ESCAPE))
@@ -275,8 +286,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	// - At the beginning of Game::Draw() before drawing *anything*
 	{
 		// Clear the back buffer (erase what's on screen) and depth buffer
-		const float color[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
-		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	color);
+		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	backgroundColor);
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
@@ -315,7 +325,6 @@ void Game::Draw(float deltaTime, float totalTime)
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); //Draw triangles
 
 		// Present at the end of the frame
-		bool vsync = Graphics::VsyncState();
 		Graphics::SwapChain->Present(
 			vsync ? 1 : 0,
 			vsync ? 0 : DXGI_PRESENT_ALLOW_TEARING);
@@ -347,7 +356,53 @@ void Game::UpdateUIContext(float deltaTime)
 	//Reset input captures
 	Input::SetKeyboardCapture(io.WantCaptureKeyboard);
 	Input::SetMouseCapture(io.WantCaptureMouse);
+}
 
-	//Show demo window
-	ImGui::ShowDemoWindow();
+// --------------------------------------------------------
+// Creates all custom UI elements
+// --------------------------------------------------------
+void Game::CustomizeUIContext()
+{
+	//Begin UI and give it a custom name
+	ImGui::Begin("Custom Context");
+
+	//Frame rate
+	ImGui::Text("Framerate: %f fps", ImGui::GetIO().Framerate);
+
+	//Window size
+	ImGui::Text("Window Width: %d Height: %d", Window::Width(), Window::Height());
+
+	//Color selector
+	ImGui::ColorEdit4("Background color editor", backgroundColor);
+
+	//Show the demo window
+	if (showDemo)
+	{
+		ImGui::ShowDemoWindow();
+	}
+
+	//Button for user to toggle demo
+	if (ImGui::Button("Toggle demo window"))
+		showDemo = !showDemo;
+
+	//Elements beyond A02
+	{
+		//Button to toggle vsync
+		if (ImGui::Button("Toggle vsync"))
+			vsync = !vsync;
+
+		//Mouse movement
+		ImGui::Text("Current mouse movement: (%g, %g)", ImGui::GetIO().MouseDelta.x, ImGui::GetIO().MouseDelta.y);
+
+		//Float with slider
+		float sliderFloat = 0.0f;
+		ImGui::SliderFloat("Float using slider", &sliderFloat, 0.0f, 255.6f);
+
+		//Text input
+		static char str[128] = "";
+		ImGui::InputTextWithHint("Text input", "Input text here", str, IM_ARRAYSIZE(str));
+	}
+
+	//End UI
+	ImGui::End();
 }

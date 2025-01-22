@@ -2,6 +2,7 @@
 
 #include <d3d11.h>
 #include <wrl/client.h>
+#include <memory>
 
 class Game
 {
@@ -17,13 +18,19 @@ public:
 	void Update(float deltaTime, float totalTime);
 	void Draw(float deltaTime, float totalTime);
 	void OnResize();
-	void UpdateUIContext(float deltaTime);
 
 private:
 
 	// Initialization helper methods - feel free to customize, combine, remove, etc.
 	void LoadShaders();
 	void CreateGeometry();
+
+	//ImGui usage
+	void UpdateUIContext(float deltaTime);
+	void CustomizeUIContext();
+	bool showDemo;
+	bool vsync;
+	float* backgroundColor;
 
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the
