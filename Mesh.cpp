@@ -52,7 +52,28 @@ Mesh::Mesh(Vertex* vertices, size_t numVertices, unsigned int* indices, size_t n
 	}
 }
 
+//Deconstructor
 Mesh::~Mesh()
 {
 	//Can be empty, as everything is handled through smart pointers
+}
+
+//Public getters
+Microsoft::WRL::ComPtr<ID3D11Buffer> Mesh::GetVertexBuffer() { return vertexBuffer; }
+Microsoft::WRL::ComPtr<ID3D11Buffer> Mesh::GetIndexBuffer() { return indexBuffer; }
+unsigned int Mesh::GetVertexCount() { return numVertices; }
+unsigned int Mesh::GetIndexCount() { return numIndices; }
+
+//Functions
+//Draws the current mesh
+void Mesh::Draw()
+{
+	//Set the buffers in the input assembler stage
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	Graphics::Context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+	Graphics::Context->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+
+	//Tell the graphics API to draw the mesh (Direct3D)
+	Graphics::Context->DrawIndexed(numIndices, 0, 0);
 }

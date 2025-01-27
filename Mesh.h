@@ -19,8 +19,8 @@ public:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetIndexBuffer();
 
 	//Functions to return the count of vertices and indices
-	unsigned int GetIndexCount();
 	unsigned int GetVertexCount();
+	unsigned int GetIndexCount();
 	
 	//Draw function to set the buffers and draw the geometry
 	void Draw();

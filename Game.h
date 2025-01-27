@@ -3,6 +3,7 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 #include <memory>
+#include "Mesh.h"
 
 class Game
 {
@@ -31,6 +32,9 @@ private:
 	bool showDemo;
 	bool vsync;
 	float* backgroundColor;
+	
+	//Smart pointers for meshes
+	std::shared_ptr<Mesh> triangle;
 
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the
