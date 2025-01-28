@@ -9,7 +9,7 @@ class Mesh
 {
 public:
 	//Constructor
-	Mesh(Vertex* vertices, size_t numVertices, unsigned int* indices, size_t numIndices);
+	Mesh(Vertex* vertices, size_t numVertices, unsigned int* indices, size_t numIndices, const char* meshName);
 
 	//Destructor
 	~Mesh();
@@ -21,6 +21,9 @@ public:
 	//Functions to return the count of vertices and indices
 	unsigned int GetVertexCount();
 	unsigned int GetIndexCount();
+
+	//Function to return the name of the mesh
+	const char* GetMeshName();
 	
 	//Draw function to set the buffers and draw the geometry
 	void Draw();
@@ -33,4 +36,7 @@ private:
 	//Integers for vertices and indices
 	unsigned int numVertices;
 	unsigned int numIndices;
+
+	//Name for the mesh
+	const char* meshName;
 };

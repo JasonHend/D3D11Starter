@@ -4,6 +4,7 @@
 #include <wrl/client.h>
 #include <memory>
 #include "Mesh.h"
+#include <vector>
 
 class Game
 {
@@ -34,7 +35,7 @@ private:
 	float* backgroundColor;
 	
 	//Smart pointers for meshes
-	std::shared_ptr<Mesh> triangle;
+	std::vector<std::shared_ptr<Mesh>> meshes;
 
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the
