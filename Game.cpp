@@ -172,6 +172,7 @@ void Game::CreateGeometry()
 	XMFLOAT4 green = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 	XMFLOAT4 blue = XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
 	XMFLOAT4 black = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f); //Adding black for A03
+	XMFLOAT4 pink = XMFLOAT4(0.96f, 0.33f, 0.73f, 1.0f); //Also adding pink
 
 	// Set up the vertices of the triangle we would like to draw
 	// - We're going to copy this array, exactly as it exists in CPU memory
@@ -204,19 +205,55 @@ void Game::CreateGeometry()
 	//Start creating some custom meshes
 	Vertex verticesQuad[] =
 	{
-		{ XMFLOAT3(+0.75f, +0.75f, +0.0f), black },
-		{ XMFLOAT3(+0.75f, +0.7f, +0.0f), black },
-		{ XMFLOAT3(+0.7f, +0.7f, +0.0f), black },
-		{ XMFLOAT3(+0.7f, +0.75f, +0.0f), black },
+		{ XMFLOAT3(+0.9f, +0.9f, +0.0f), red },
+		{ XMFLOAT3(+0.9f, +0.7f, +0.0f), black },
+		{ XMFLOAT3(+0.7f, +0.7f, +0.0f), blue },
+		{ XMFLOAT3(+0.7f, +0.9f, +0.0f), black },
 	};
 
 	unsigned int indicesQuad[] = { 0, 1, 2, 0, 2, 3 };
 
 	std::shared_ptr<Mesh>quad = std::make_shared<Mesh>(verticesQuad, ARRAYSIZE(verticesQuad), indicesQuad, ARRAYSIZE(indicesQuad), "Quad");
 
+	//Make a mesh that is a face
+	Vertex verticesFace[] =
+	{
+		//Left brow
+		{ XMFLOAT3(-0.7f, +0.55f, +0.0f), black},
+		{ XMFLOAT3(-0.65f, +0.70f, +0.0f), black},
+		{ XMFLOAT3(-0.60f, +0.55f, +0.0f), black},
+
+		//Right brow
+		{ XMFLOAT3(-0.50f, +0.55f, +0.0f), black},
+		{ XMFLOAT3(-0.45f, +0.70f, +0.0f), black},
+		{ XMFLOAT3(-0.40f, +0.55f, +0.0f), black},
+
+		//Left eye
+		{ XMFLOAT3(-0.70f, +0.40f, +0.0f), black},
+		{ XMFLOAT3(-0.70f, +0.50f, +0.0f), black},
+		{ XMFLOAT3(-0.60f, +0.45f, +0.0f), black},
+		{ XMFLOAT3(-0.60f, +0.40f, +0.0f), black},
+
+		//Right eye
+		{ XMFLOAT3(-0.50f, +0.40f, +0.0f), black},
+		{ XMFLOAT3(-0.50f, +0.45f, +0.0f), black},
+		{ XMFLOAT3(-0.40f, +0.50f, +0.0f), black},
+		{ XMFLOAT3(-0.40f, +0.40f, +0.0f), black},
+
+		//Nose
+		{ XMFLOAT3(-0.575f, +0.30f, +0.0f), pink},
+		{ XMFLOAT3(-0.55f, +0.35f, +0.0f), pink},
+		{ XMFLOAT3(-0.525f, +0.30f, +0.0f), pink},
+	};
+	
+	unsigned int indicesFace[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 9, 6, 10, 11, 12, 12, 13, 10, 14, 15, 16 };
+	
+	std::shared_ptr<Mesh> face = std::make_shared<Mesh>(verticesFace, ARRAYSIZE(verticesFace), indicesFace, ARRAYSIZE(indicesFace), "Face");
+
 	//Push all meshes into the vector
 	meshes.push_back(triangle);
 	meshes.push_back(quad);
+	meshes.push_back(face);
 }
 
 
