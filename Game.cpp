@@ -326,6 +326,10 @@ void Game::CustomizeUIContext()
 		//Color selector
 		ImGui::ColorEdit4("Background color editor", backgroundColor);
 
+		//Button to toggle vsync
+		if (ImGui::Button("Toggle vsync"))
+			vsync = !vsync;
+
 		//Show the demo window
 		if (showDemo)
 		{
