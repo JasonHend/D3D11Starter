@@ -65,26 +65,36 @@ void Game::Initialize()
 		Graphics::Context->PSSetShader(pixelShader.Get(), 0, 0);
 	}
 
-	//Initialize background color
-	backgroundColor = new float[4] {0.4f, 0.6f, 0.75f, 0.0f};
+	//Instantiate UI variables
+	{
+		//Initialize background color
+		backgroundColor = new float[4] { 0.0f, 0.3f, 0.5f, 1.0f };
 
-	//Initialize default vsync state out of loop to be used in UI
-	vsync = Graphics::VsyncState();
+		//Initialize default vsync state out of loop to be used in UI
+		vsync = Graphics::VsyncState();
 
-	//Defines size of the constant buffer (multiple of 16)
-	unsigned int constBuffSize = sizeof(BufferStructs);
-	constBuffSize = (constBuffSize + 15) / 16 * 16;
+		//Color tint and offset vectors
+		colorTint = new float[4] { 0.0f, 0.0f, 1.0f, 0.8f };
+		offset = new float[3] { 0.0f, 0.0f, 0.0f };
+	}
 
-	//Intialize constant buffer
-	D3D11_BUFFER_DESC constBuffDesc = {};
-	constBuffDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	constBuffDesc.ByteWidth = constBuffSize;
-	constBuffDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	constBuffDesc.Usage = D3D11_USAGE_DYNAMIC;
+	//Create constant buffer
+	{
+		//Defines size of the constant buffer (multiple of 16)
+		unsigned int constBuffSize = sizeof(BufferStructs);
+		constBuffSize = (constBuffSize + 15) / 16 * 16;
 
-	//Create buffer and bind it
-	Graphics::Device->CreateBuffer(&constBuffDesc, 0, constBuffer.GetAddressOf());
-	Graphics::Context->VSSetConstantBuffers(0, 1, constBuffer.GetAddressOf());
+		//Intialize constant buffer
+		D3D11_BUFFER_DESC constBuffDesc = {};
+		constBuffDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		constBuffDesc.ByteWidth = constBuffSize;
+		constBuffDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		constBuffDesc.Usage = D3D11_USAGE_DYNAMIC;
+
+		//Create buffer and bind it
+		Graphics::Device->CreateBuffer(&constBuffDesc, 0, constBuffer.GetAddressOf());
+		Graphics::Context->VSSetConstantBuffers(0, 1, constBuffer.GetAddressOf());
+	}
 }
 
 
@@ -96,9 +106,14 @@ void Game::Initialize()
 // --------------------------------------------------------
 Game::~Game()
 {
-	//Clean up memory
 	delete backgroundColor;
 	backgroundColor = nullptr;
+
+	delete colorTint;
+	colorTint = nullptr;
+
+	delete offset;
+	offset = nullptr;
 
 	ImGui_ImplDX11_Shutdown();
 	ImGui_ImplWin32_Shutdown();
@@ -308,8 +323,8 @@ void Game::Draw(float deltaTime, float totalTime)
 	{
 		//Define vertex information to pass into constant buffer
 		BufferStructs constBuffStruct;
-		constBuffStruct.colorTint = XMFLOAT4(0.0f, 0.0f, 1.0f, 0.8f);
-		constBuffStruct.offset = XMFLOAT3(0.3f, 0.2f, 0.0f);
+		constBuffStruct.colorTint = XMFLOAT4(colorTint);
+		constBuffStruct.offset = XMFLOAT3(offset);
 
 		//Copy data to the constant buffer and un map for GPU use
 		D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
@@ -422,6 +437,14 @@ void Game::CustomizeUIContext()
 			}
 			ImGui::PopID();
 		}
+		ImGui::TreePop();
+	}
+
+	//UI tree for constant buffer data
+	if (ImGui::TreeNode("Constant Buffer"))
+	{
+		ImGui::ColorEdit4("ColorTint", colorTint);
+		ImGui::DragFloat3("Offset", offset);
 		ImGui::TreePop();
 	}
 

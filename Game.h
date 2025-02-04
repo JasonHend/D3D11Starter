@@ -5,6 +5,7 @@
 #include <memory>
 #include "Mesh.h"
 #include <vector>
+#include <DirectXMath.h>
 
 class Game
 {
@@ -33,6 +34,8 @@ private:
 	bool showDemo;
 	bool vsync;
 	float* backgroundColor;
+	float* colorTint;
+	float* offset;
 	
 	//Smart pointers for meshes
 	std::vector<std::shared_ptr<Mesh>> meshes;
