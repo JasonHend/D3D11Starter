@@ -5,6 +5,7 @@
 #include "PathHelpers.h"
 #include "Window.h"
 #include "Mesh.h"
+#include "BufferStructs.h"
 
 #include <DirectXMath.h>
 #include <vector>
@@ -69,6 +70,21 @@ void Game::Initialize()
 
 	//Initialize default vsync state out of loop to be used in UI
 	vsync = Graphics::VsyncState();
+
+	//Defines size of the constant buffer (multiple of 16)
+	unsigned int constBuffSize = sizeof(BufferStructs);
+	constBuffSize = (constBuffSize + 15) / 16 * 16;
+
+	//Intialize constant buffer
+	D3D11_BUFFER_DESC constBuffDesc = {};
+	constBuffDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	constBuffDesc.ByteWidth = constBuffSize;
+	constBuffDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	constBuffDesc.Usage = D3D11_USAGE_DYNAMIC;
+
+	//Create buffer and bind it
+	Graphics::Device->CreateBuffer(&constBuffDesc, 0, constBuffer.GetAddressOf());
+	Graphics::Context->VSSetConstantBuffers(0, 1, constBuffer.GetAddressOf());
 }
 
 
@@ -290,6 +306,17 @@ void Game::Draw(float deltaTime, float totalTime)
 	// - These things should happen ONCE PER FRAME
 	// - At the beginning of Game::Draw() before drawing *anything*
 	{
+		//Define vertex information to pass into constant buffer
+		BufferStructs constBuffStruct;
+		constBuffStruct.colorTint = XMFLOAT4(0.0f, 0.0f, 1.0f, 0.8f);
+		constBuffStruct.offset = XMFLOAT3(0.3f, 0.2f, 0.0f);
+
+		//Copy data to the constant buffer and un map for GPU use
+		D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
+		Graphics::Context->Map(constBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
+		memcpy(mappedBuffer.pData, &constBuffStruct, sizeof(constBuffStruct));
+		Graphics::Context->Unmap(constBuffer.Get(), 0);
+
 		// Clear the back buffer (erase what's on screen) and depth buffer
 		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	backgroundColor);
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
