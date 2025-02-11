@@ -321,20 +321,20 @@ void Game::Draw(float deltaTime, float totalTime)
 	// - These things should happen ONCE PER FRAME
 	// - At the beginning of Game::Draw() before drawing *anything*
 	{
-		//Define vertex information to pass into constant buffer
-		BufferStructs constBuffStruct;
-		constBuffStruct.colorTint = XMFLOAT4(colorTint);
-		constBuffStruct.offset = XMFLOAT3(offset);
+		////Define vertex information to pass into constant buffer
+		//BufferStructs constBuffStruct;
+		//constBuffStruct.colorTint = XMFLOAT4(colorTint);
+		//constBuffStruct.m4World = XMFLOAT3(offset);
 
-		//Copy data to the constant buffer and un map for GPU use
-		D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
-		Graphics::Context->Map(constBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
-		memcpy(mappedBuffer.pData, &constBuffStruct, sizeof(constBuffStruct));
-		Graphics::Context->Unmap(constBuffer.Get(), 0);
+		////Copy data to the constant buffer and un map for GPU use
+		//D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
+		//Graphics::Context->Map(constBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
+		//memcpy(mappedBuffer.pData, &constBuffStruct, sizeof(constBuffStruct));
+		//Graphics::Context->Unmap(constBuffer.Get(), 0);
 
-		// Clear the back buffer (erase what's on screen) and depth buffer
-		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	backgroundColor);
-		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+		//// Clear the back buffer (erase what's on screen) and depth buffer
+		//Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	backgroundColor);
+		//Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
 	// DRAW geometry, each mesh is drawn seperately as mesh class has been created
