@@ -32,12 +32,17 @@ public:
 	void Scale(DirectX::XMFLOAT3 scale);
 
 private:
+	//Methods to update dirty matrices
+	void CleanMatrices();
+
 	//Raw data
-	bool dirty;
 	DirectX::XMFLOAT3 position;
 	DirectX::XMFLOAT3 pitchYawRoll;
 	DirectX::XMFLOAT3 scale;
 
 	DirectX::XMFLOAT4X4 m4World;
 	DirectX::XMFLOAT4X4 m4WorldInverseTranspose;
+
+	//State of matrices
+	bool dirtyMatrices;
 };

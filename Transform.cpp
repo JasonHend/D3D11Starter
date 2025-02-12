@@ -6,7 +6,7 @@ using namespace DirectX;
 /// Creates new transform class
 /// </summary>
 Transform::Transform() :
-	dirty(false),
+	dirtyMatrices(false),
 	position(0.0f, 0.0f, 0.0f),
 	pitchYawRoll(0.0f, 0.0f, 0.0f),
 	scale(1.0f, 1.0f, 1.0f)
@@ -27,7 +27,7 @@ void Transform::SetPosition(float x, float y, float z)
 	position.x = x;
 	position.y = y;
 	position.z = z;
-	dirty = true;
+	dirtyMatrices = true;
 }
 
 /// <summary>
@@ -37,7 +37,7 @@ void Transform::SetPosition(float x, float y, float z)
 void Transform::SetPosition(DirectX::XMFLOAT3 position)
 {
 	this->position = position;
-	dirty = true;
+	dirtyMatrices = true;
 }
 
 /// <summary>
@@ -51,7 +51,7 @@ void Transform::SetRotation(float pitch, float yaw, float roll)
 	pitchYawRoll.x = pitch;
 	pitchYawRoll.y = yaw;
 	pitchYawRoll.z = roll;
-	dirty = true;
+	dirtyMatrices = true;
 }
 
 /// <summary>
@@ -61,7 +61,7 @@ void Transform::SetRotation(float pitch, float yaw, float roll)
 void Transform::SetRotation(DirectX::XMFLOAT3 rotation)
 {
 	this->pitchYawRoll = rotation;
-	dirty = true;
+	dirtyMatrices = true;
 }
 
 /// <summary>
@@ -75,7 +75,7 @@ void Transform::SetScale(float x, float y, float z)
 	scale.x = x;
 	scale.y = y;
 	scale.z = z;
-	dirty = true;
+	dirtyMatrices = true;
 }
 
 /// <summary>
@@ -85,15 +85,25 @@ void Transform::SetScale(float x, float y, float z)
 void Transform::SetScale(DirectX::XMFLOAT3 scale)
 {
 	this->scale = scale;
-	dirty = true;
+	dirtyMatrices = true;
 }
 
 //Getters
 DirectX::XMFLOAT3 Transform::GetPosition() { return position; }
 DirectX::XMFLOAT3 Transform::GetPitchYawRoll() { return pitchYawRoll; }
 DirectX::XMFLOAT3 Transform::GetScale() { return scale; }
-DirectX::XMFLOAT4X4 Transform::GetWorldMatrix() { return m4World; }
-DirectX::XMFLOAT4X4 Transform::GetWorldInverseTransposeMatrix() { return m4WorldInverseTranspose; }
+
+//Each matrix get should clean the matrix first
+DirectX::XMFLOAT4X4 Transform::GetWorldMatrix() 
+{ 
+	CleanMatrices();
+	return m4World; 
+}
+DirectX::XMFLOAT4X4 Transform::GetWorldInverseTransposeMatrix() 
+{ 
+	CleanMatrices();
+	return m4WorldInverseTranspose; 
+}
 
 /// <summary>
 /// Adjusts exsisting position using floats
@@ -106,7 +116,7 @@ void Transform::MoveAbsolute(float x, float y, float z)
 	position.x += x;
 	position.y += y;
 	position.z += z;
-	dirty = true;
+	dirtyMatrices = true;
 }
 
 /// <summary>
@@ -130,7 +140,7 @@ void Transform::Rotate(float pitch, float yaw, float roll)
 	pitchYawRoll.x += pitch;
 	pitchYawRoll.y += yaw;
 	pitchYawRoll.z += roll;
-	dirty = true;
+	dirtyMatrices = true;
 }
 
 /// <summary>
@@ -154,7 +164,7 @@ void Transform::Scale(float x, float y, float z)
 	scale.x += x;
 	scale.y += y;
 	scale.z += z;
-	dirty = true;
+	dirtyMatrices = true;
 }
 
 /// <summary>
@@ -165,4 +175,30 @@ void Transform::Scale(DirectX::XMFLOAT3 scale)
 {
 	//Cant use compound operators on XMFLOAT3, use overload
 	Scale(scale.x, scale.y, scale.z);
+}
+
+/// <summary>
+/// Cleans up both matrices whenever data is changed
+/// </summary>
+void Transform::CleanMatrices()
+{
+	//Check if necessary to update matrix
+	if (!dirtyMatrices)
+		return;
+
+	//Matrix for translation, rotation, and scale
+	XMMATRIX m4Translation = XMMatrixTranslation(position.x, position.y, position.z);
+	XMMATRIX m4Rotation = XMMatrixRotationRollPitchYaw(pitchYawRoll.z, pitchYawRoll.x, pitchYawRoll.y);
+	XMMATRIX m4Scale = XMMatrixScaling(scale.x, scale.y, scale.z);
+
+	//Combine into world matrix
+	XMMATRIX world = m4Scale * m4Rotation * m4Translation;
+
+	//Store the matrices
+	XMStoreFloat4x4(&m4World, world);
+	XMStoreFloat4x4(&m4WorldInverseTranspose,
+		XMMatrixInverse(0, XMMatrixTranspose(world)));
+
+	//Matrices are now clean
+	dirtyMatrices = false;
 }
