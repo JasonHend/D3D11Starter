@@ -5,5 +5,5 @@
 struct BufferStructs
 {
 	DirectX::XMFLOAT4 colorTint;
-	DirectX::XMMATRIX m4World;
+	DirectX::XMFLOAT4X4 m4World;
 };

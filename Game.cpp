@@ -6,6 +6,7 @@
 #include "Window.h"
 #include "Mesh.h"
 #include "BufferStructs.h"
+#include "GameEntity.h"
 
 #include <DirectXMath.h>
 #include <vector>
@@ -285,6 +286,19 @@ void Game::CreateGeometry()
 	meshes.push_back(triangle);
 	meshes.push_back(quad);
 	meshes.push_back(face);
+
+	//Create entities
+	std::shared_ptr<GameEntity> triangleEntity = std::make_shared<GameEntity>(triangle);
+	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(quad);
+	std::shared_ptr<GameEntity> faceEntity = std::make_shared<GameEntity>(face);
+	std::shared_ptr<GameEntity> faceEntity2 = std::make_shared<GameEntity>(face);
+	std::shared_ptr<GameEntity> quadEntity2 = std::make_shared<GameEntity>(quad);
+
+	entities.push_back(triangleEntity);
+	entities.push_back(quadEntity);
+	entities.push_back(faceEntity);
+	entities.push_back(faceEntity2);
+	entities.push_back(quadEntity2);
 }
 
 
@@ -309,6 +323,12 @@ void Game::Update(float deltaTime, float totalTime)
 	// Example input checking: Quit if the escape key is pressed
 	if (Input::KeyDown(VK_ESCAPE))
 		Window::Quit();
+
+	//Update some entities
+	entities[0]->GetTransform()->SetRotation(0.0f, totalTime, 0.0f);
+	entities[3]->GetTransform()->SetPosition((float)sin(totalTime), (float)sin(totalTime), 0.0f);
+	entities[4]->GetTransform()->SetPosition(-0.75f, -0.75f, 0.0f);
+	entities[4]->GetTransform()->SetScale((float)sin(totalTime), 1.0f, 1.0f);
 }
 
 
@@ -321,26 +341,15 @@ void Game::Draw(float deltaTime, float totalTime)
 	// - These things should happen ONCE PER FRAME
 	// - At the beginning of Game::Draw() before drawing *anything*
 	{
-		////Define vertex information to pass into constant buffer
-		//BufferStructs constBuffStruct;
-		//constBuffStruct.colorTint = XMFLOAT4(colorTint);
-		//constBuffStruct.m4World = XMFLOAT3(offset);
-
-		////Copy data to the constant buffer and un map for GPU use
-		//D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
-		//Graphics::Context->Map(constBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
-		//memcpy(mappedBuffer.pData, &constBuffStruct, sizeof(constBuffStruct));
-		//Graphics::Context->Unmap(constBuffer.Get(), 0);
-
-		//// Clear the back buffer (erase what's on screen) and depth buffer
-		//Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	backgroundColor);
-		//Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+		// Clear the back buffer (erase what's on screen) and depth buffer
+		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(),	backgroundColor);
+		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
 	// DRAW geometry, each mesh is drawn seperately as mesh class has been created
-	for (UINT i = 0; i < meshes.size(); i++)
+	for (UINT i = 0; i < entities.size(); i++)
 	{
-		meshes[i]->Draw();
+		entities[i]->Draw(constBuffer);
 	}
 
 	// Frame END
@@ -445,6 +454,30 @@ void Game::CustomizeUIContext()
 	{
 		ImGui::ColorEdit4("ColorTint", colorTint);
 		ImGui::DragFloat3("Offset", offset);
+		ImGui::TreePop();
+	}
+
+	//UI tree for game entities
+	if (ImGui::TreeNode("Entities"))
+	{
+		for (UINT i = 0; i < entities.size(); i++)
+		{
+			ImGui::PushID(i);
+			//Reference floats for position, rotation, and scale
+			XMFLOAT3 position = entities[i]->GetTransform()->GetPosition();
+			XMFLOAT3 rotation = entities[i]->GetTransform()->GetPitchYawRoll();
+			XMFLOAT3 scale = entities[i]->GetTransform()->GetScale();
+
+			if (ImGui::TreeNode("Entity", "Entity: %d", i))
+			{
+				//Display each float3
+				if (ImGui::DragFloat3("Position", &position.x, 0.1f)) entities[i]->GetTransform()->SetPosition(position);
+				if (ImGui::DragFloat3("Rotation", &rotation.x, 0.1f)) entities[i]->GetTransform()->SetRotation(rotation);
+				if (ImGui::DragFloat3("Scale", &scale.x, 0.1f)) entities[i]->GetTransform()->SetScale(scale);
+				ImGui::TreePop();
+			}
+			ImGui::PopID();
+		}
 		ImGui::TreePop();
 	}
 

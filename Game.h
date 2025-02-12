@@ -4,6 +4,7 @@
 #include <wrl/client.h>
 #include <memory>
 #include "Mesh.h"
+#include "GameEntity.h"
 #include <vector>
 #include <DirectXMath.h>
 
@@ -39,6 +40,9 @@ private:
 	
 	//Smart pointers for meshes
 	std::vector<std::shared_ptr<Mesh>> meshes;
+
+	//Smart pointer for game entities
+	std::vector<std::shared_ptr<GameEntity>> entities;
 
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the
