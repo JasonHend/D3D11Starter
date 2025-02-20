@@ -7,6 +7,7 @@
 #include "GameEntity.h"
 #include <vector>
 #include <DirectXMath.h>
+#include "Camera.h"
 
 class Game
 {
@@ -29,7 +30,7 @@ private:
 	void LoadShaders();
 	void CreateGeometry();
 
-	//ImGui usage
+	// ImGui usage
 	void UpdateUIContext(float deltaTime);
 	void CustomizeUIContext();
 	bool showDemo;
@@ -38,10 +39,10 @@ private:
 	float* colorTint;
 	float* offset;
 	
-	//Smart pointers for meshes
+	// Smart pointers for meshes
 	std::vector<std::shared_ptr<Mesh>> meshes;
 
-	//Smart pointer for game entities
+	// Smart pointer for game entities
 	std::vector<std::shared_ptr<GameEntity>> entities;
 
 	// Note the usage of ComPtr below
@@ -53,12 +54,16 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
 
-	//Constant buffer
+	// Constant buffer
 	Microsoft::WRL::ComPtr<ID3D11Buffer> constBuffer;
 
 	// Shaders and shader-related constructs
 	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
+
+	// Camera associated variables
+	std::shared_ptr<Camera> currentCamera;
+	std::vector<std::shared_ptr<Camera>> cameras;
 };
 

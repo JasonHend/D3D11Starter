@@ -1,6 +1,7 @@
 #include "GameEntity.h"
 #include "Graphics.h"
 #include "BufferStructs.h"
+#include "Camera.h"
 #include <DirectXMath.h>
 
 /// <summary>
@@ -30,7 +31,7 @@ std::shared_ptr<Mesh> GameEntity::GetMesh() { return mesh; }
 /// Sets up necessary buffers and handles drawing mesh to the screen
 /// </summary>
 /// <param name="constantBuffer"></param>
-void GameEntity::Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> constBuffer)
+void GameEntity::Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> constBuffer, Camera currentCam)
 {
 	//Copy constant buffer code from Game::Draw()
 	//Do not clear back buffer in this context
@@ -38,6 +39,8 @@ void GameEntity::Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> constBuffer)
 	BufferStructs constBuffStruct;
 	constBuffStruct.colorTint = DirectX::XMFLOAT4(0.0f, 0.3f, 0.7f, 1.0f);
 	constBuffStruct.m4World = transform->GetWorldMatrix();
+	constBuffStruct.m4View = currentCam.GetViewMatrix();
+	constBuffStruct.m4Projection = currentCam.GetProjectionMatrix();
 
 	//Copy data to the constant buffer and un map for GPU use
 	D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};

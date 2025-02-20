@@ -1,4 +1,5 @@
 #include "Transform.h"
+#include "DirectXMath.h"
 
 using namespace DirectX;
 
@@ -7,11 +8,15 @@ using namespace DirectX;
 /// </summary>
 Transform::Transform() :
 	dirtyMatrices(false),
+	dirtyVectors(false),
 	position(0.0f, 0.0f, 0.0f),
 	pitchYawRoll(0.0f, 0.0f, 0.0f),
-	scale(1.0f, 1.0f, 1.0f)
+	scale(1.0f, 1.0f, 1.0f),
+	up(0.0f, 1.0f, 0.0f),
+	right(1.0f, 0.0f, 0.0f),
+	forward(0.0f, 0.0f, 1.0f)
 {
-	//Initialize world matrix as identity
+	// Initialize world matrix as identity
 	XMStoreFloat4x4(&m4World, XMMatrixIdentity());
 	XMStoreFloat4x4(&m4WorldInverseTranspose, XMMatrixIdentity());
 }
@@ -52,6 +57,7 @@ void Transform::SetRotation(float pitch, float yaw, float roll)
 	pitchYawRoll.y = yaw;
 	pitchYawRoll.z = roll;
 	dirtyMatrices = true;
+	dirtyVectors = true;
 }
 
 /// <summary>
@@ -62,6 +68,7 @@ void Transform::SetRotation(DirectX::XMFLOAT3 rotation)
 {
 	this->pitchYawRoll = rotation;
 	dirtyMatrices = true;
+	dirtyVectors = true;
 }
 
 /// <summary>
@@ -88,12 +95,12 @@ void Transform::SetScale(DirectX::XMFLOAT3 scale)
 	dirtyMatrices = true;
 }
 
-//Getters
+// Getters
 DirectX::XMFLOAT3 Transform::GetPosition() { return position; }
 DirectX::XMFLOAT3 Transform::GetPitchYawRoll() { return pitchYawRoll; }
 DirectX::XMFLOAT3 Transform::GetScale() { return scale; }
 
-//Each matrix get should clean the matrix first
+// Each matrix get should clean the matrix first
 DirectX::XMFLOAT4X4 Transform::GetWorldMatrix() 
 { 
 	CleanMatrices();
@@ -103,6 +110,24 @@ DirectX::XMFLOAT4X4 Transform::GetWorldInverseTransposeMatrix()
 { 
 	CleanMatrices();
 	return m4WorldInverseTranspose; 
+}
+
+DirectX::XMFLOAT3 Transform::GetRight()
+{
+	CleanVectors();
+	return right;
+}
+
+DirectX::XMFLOAT3 Transform::GetUp()
+{
+	CleanVectors();
+	return up;
+}
+
+DirectX::XMFLOAT3 Transform::GetForward()
+{
+	CleanVectors();
+	return forward;
 }
 
 /// <summary>
@@ -125,8 +150,43 @@ void Transform::MoveAbsolute(float x, float y, float z)
 /// <param name="offset">Added positions</param>
 void Transform::MoveAbsolute(DirectX::XMFLOAT3 offset)
 {
-	//Cant use compound operators on XMFLOAT3, use overload
+	// Cant use compound operators on XMFLOAT3, use overload
 	MoveAbsolute(offset.x, offset.y, offset.z);
+}
+
+/// <summary>
+/// Moves entity based on current rotation parameters
+/// </summary>
+/// <param name="x">x offset</param>
+/// <param name="y">y offset</param>
+/// <param name="z">z offset</param>
+void Transform::MoveRelative(float x, float y, float z)
+{
+	// Place variables into a vector
+	XMFLOAT3 moveOffset(x, y, z);
+	XMVECTOR vectorOffset = XMLoadFloat3(&moveOffset);
+
+	// Get current rotation into a quaternion
+	XMVECTOR quaternionRotation(XMQuaternionRotationRollPitchYaw(pitchYawRoll.x, pitchYawRoll.y, pitchYawRoll.z));
+
+	// Rotate and store in final offset
+	XMVECTOR finalOffset = XMVector3Rotate(vectorOffset, quaternionRotation);
+
+	// Load into rotation
+	XMStoreFloat3(&position, XMLoadFloat3(&position) + finalOffset);
+
+	// Update matrices
+	dirtyMatrices = true;
+}
+
+/// <summary>
+/// Moves entity based on curent rotation parameters
+/// </summary>
+/// <param name="offset">Offset vector</param>
+void Transform::MoveRelative(DirectX::XMFLOAT3 offset)
+{
+	// Call overload
+	MoveRelative(offset.x, offset.y, offset.z);
 }
 
 /// <summary>
@@ -141,6 +201,7 @@ void Transform::Rotate(float pitch, float yaw, float roll)
 	pitchYawRoll.y += yaw;
 	pitchYawRoll.z += roll;
 	dirtyMatrices = true;
+	dirtyVectors = true;
 }
 
 /// <summary>
@@ -182,23 +243,40 @@ void Transform::Scale(DirectX::XMFLOAT3 scale)
 /// </summary>
 void Transform::CleanMatrices()
 {
-	//Check if necessary to update matrix
+	// Check if necessary to update matrix
 	if (!dirtyMatrices)
 		return;
 
-	//Matrix for translation, rotation, and scale
+	// Matrix for translation, rotation, and scale
 	XMMATRIX m4Translation = XMMatrixTranslation(position.x, position.y, position.z);
-	XMMATRIX m4Rotation = XMMatrixRotationRollPitchYaw(pitchYawRoll.z, pitchYawRoll.x, pitchYawRoll.y);
+	XMMATRIX m4Rotation = XMMatrixRotationRollPitchYaw(pitchYawRoll.x, pitchYawRoll.y, pitchYawRoll.z);
 	XMMATRIX m4Scale = XMMatrixScaling(scale.x, scale.y, scale.z);
 
-	//Combine into world matrix
+	// Combine into world matrix
 	XMMATRIX world = m4Scale * m4Rotation * m4Translation;
 
-	//Store the matrices
+	// Store the matrices
 	XMStoreFloat4x4(&m4World, world);
 	XMStoreFloat4x4(&m4WorldInverseTranspose,
 		XMMatrixInverse(0, XMMatrixTranspose(world)));
 
-	//Matrices are now clean
+	// Matrices are now clean
 	dirtyMatrices = false;
+}
+
+void Transform::CleanVectors()
+{
+	// Check if vectors should be updated
+	if (!dirtyVectors)
+		return;
+
+	// Current rotation for quaternion
+	XMVECTOR quaternionRotation(XMQuaternionRotationRollPitchYaw(pitchYawRoll.x, pitchYawRoll.y, pitchYawRoll.z));
+
+	// Rotate all 3 vectors
+	XMStoreFloat3(&up, XMVector3Rotate(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), quaternionRotation));
+	XMStoreFloat3(&right, XMVector3Rotate(XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), quaternionRotation));
+	XMStoreFloat3(&forward, XMVector3Rotate(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), quaternionRotation));
+
+	dirtyVectors = false;
 }

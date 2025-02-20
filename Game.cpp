@@ -7,6 +7,7 @@
 #include "Mesh.h"
 #include "BufferStructs.h"
 #include "GameEntity.h"
+#include "Camera.h"
 
 #include <DirectXMath.h>
 #include <vector>
@@ -35,13 +36,13 @@ void Game::Initialize()
 	LoadShaders();
 	CreateGeometry();
 
-	//Initialize ImGui with it's backends
+	// Initialize ImGui with it's backends
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGui_ImplWin32_Init(Window::Handle());
 	ImGui_ImplDX11_Init(Graphics::Device.Get(), Graphics::Context.Get());
 
-	//Style for ImGui (I always use dark mode)
+	// Style for ImGui (I always use dark mode)
 	ImGui::StyleColorsDark();
 
 	// Set initial graphics API state
@@ -66,35 +67,55 @@ void Game::Initialize()
 		Graphics::Context->PSSetShader(pixelShader.Get(), 0, 0);
 	}
 
-	//Instantiate UI variables
+	// Instantiate UI variables
 	{
-		//Initialize background color
+		// Initialize background color
 		backgroundColor = new float[4] { 0.0f, 0.3f, 0.5f, 1.0f };
 
-		//Initialize default vsync state out of loop to be used in UI
+		// Initialize default vsync state out of loop to be used in UI
 		vsync = Graphics::VsyncState();
 
-		//Color tint and offset vectors
+		// Color tint and offset vectors
 		colorTint = new float[4] { 0.0f, 0.0f, 1.0f, 0.8f };
 		offset = new float[3] { 0.0f, 0.0f, 0.0f };
 	}
 
-	//Create constant buffer
+	// Create constant buffer
 	{
-		//Defines size of the constant buffer (multiple of 16)
+		// Defines size of the constant buffer (multiple of 16)
 		unsigned int constBuffSize = sizeof(BufferStructs);
 		constBuffSize = (constBuffSize + 15) / 16 * 16;
 
-		//Intialize constant buffer
+		// Intialize constant buffer
 		D3D11_BUFFER_DESC constBuffDesc = {};
 		constBuffDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		constBuffDesc.ByteWidth = constBuffSize;
 		constBuffDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 		constBuffDesc.Usage = D3D11_USAGE_DYNAMIC;
 
-		//Create buffer and bind it
+		// Create buffer and bind it
 		Graphics::Device->CreateBuffer(&constBuffDesc, 0, constBuffer.GetAddressOf());
 		Graphics::Context->VSSetConstantBuffers(0, 1, constBuffer.GetAddressOf());
+	}
+
+	// Create cameras
+	{
+		// Make initial positions and cameras
+		XMFLOAT3 firstCamPos(0.0f, 0.0f, -5.0f);
+		std::shared_ptr firstCam = std::make_shared<Camera>(Window::AspectRatio(), firstCamPos, 90.0f);
+
+		XMFLOAT3 secondCamPos(2.0f, 0.0f, -3.0f);
+		std::shared_ptr secondCam = std::make_shared<Camera>(Window::AspectRatio(), secondCamPos, 120.0f);
+
+		XMFLOAT3 thirdCamPos(-2.0f, 3.0f, -10.0f);
+		std::shared_ptr thirdCam = std::make_shared<Camera>(Window::AspectRatio(), thirdCamPos, 60.0f);
+
+		// Push back and set main
+		cameras.push_back(firstCam);
+		cameras.push_back(secondCam);
+		cameras.push_back(thirdCam);
+
+		currentCamera = cameras[0];
 	}
 }
 
@@ -234,7 +255,7 @@ void Game::CreateGeometry()
 
 	std::shared_ptr<Mesh>triangle = std::make_shared<Mesh>(vertices, ARRAYSIZE(vertices), indices, ARRAYSIZE(indices), "Default Triangle");
 
-	//Start creating some custom meshes
+	// Start creating some custom meshes
 	Vertex verticesQuad[] =
 	{
 		{ XMFLOAT3(+0.9f, +0.9f, +0.0f), red },
@@ -247,32 +268,32 @@ void Game::CreateGeometry()
 
 	std::shared_ptr<Mesh>quad = std::make_shared<Mesh>(verticesQuad, ARRAYSIZE(verticesQuad), indicesQuad, ARRAYSIZE(indicesQuad), "Quad");
 
-	//Make a mesh that is a face
+	// Make a mesh that is a face
 	Vertex verticesFace[] =
 	{
-		//Left brow
+		// Left brow
 		{ XMFLOAT3(-0.7f, +0.55f, +0.0f), black},
 		{ XMFLOAT3(-0.65f, +0.70f, +0.0f), black},
 		{ XMFLOAT3(-0.60f, +0.55f, +0.0f), black},
 
-		//Right brow
+		// Right brow
 		{ XMFLOAT3(-0.50f, +0.55f, +0.0f), black},
 		{ XMFLOAT3(-0.45f, +0.70f, +0.0f), black},
 		{ XMFLOAT3(-0.40f, +0.55f, +0.0f), black},
 
-		//Left eye
+		// Left eye
 		{ XMFLOAT3(-0.70f, +0.40f, +0.0f), black},
 		{ XMFLOAT3(-0.70f, +0.50f, +0.0f), black},
 		{ XMFLOAT3(-0.60f, +0.45f, +0.0f), black},
 		{ XMFLOAT3(-0.60f, +0.40f, +0.0f), black},
 
-		//Right eye
+		// Right eye
 		{ XMFLOAT3(-0.50f, +0.40f, +0.0f), black},
 		{ XMFLOAT3(-0.50f, +0.45f, +0.0f), black},
 		{ XMFLOAT3(-0.40f, +0.50f, +0.0f), black},
 		{ XMFLOAT3(-0.40f, +0.40f, +0.0f), black},
 
-		//Nose
+		// Nose
 		{ XMFLOAT3(-0.575f, +0.30f, +0.0f), pink},
 		{ XMFLOAT3(-0.55f, +0.35f, +0.0f), pink},
 		{ XMFLOAT3(-0.525f, +0.30f, +0.0f), pink},
@@ -282,12 +303,12 @@ void Game::CreateGeometry()
 	
 	std::shared_ptr<Mesh> face = std::make_shared<Mesh>(verticesFace, ARRAYSIZE(verticesFace), indicesFace, ARRAYSIZE(indicesFace), "Face");
 
-	//Push all meshes into the vector
+	// Push all meshes into the vector
 	meshes.push_back(triangle);
 	meshes.push_back(quad);
 	meshes.push_back(face);
 
-	//Create entities
+	// Create entities
 	std::shared_ptr<GameEntity> triangleEntity = std::make_shared<GameEntity>(triangle);
 	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(quad);
 	std::shared_ptr<GameEntity> faceEntity = std::make_shared<GameEntity>(face);
@@ -308,6 +329,13 @@ void Game::CreateGeometry()
 // --------------------------------------------------------
 void Game::OnResize()
 {
+	for (int i = 0; i < cameras.size(); i++)
+	{
+		if (cameras[i] != nullptr)
+		{
+			cameras[i]->UpdateProjectionMatrix(Window::AspectRatio());
+		}
+	}
 }
 
 
@@ -316,7 +344,7 @@ void Game::OnResize()
 // --------------------------------------------------------
 void Game::Update(float deltaTime, float totalTime)
 {
-	//Call helper method to update UI
+	// Call helper method to update UI
 	UpdateUIContext(deltaTime);
 	CustomizeUIContext();
 
@@ -324,11 +352,14 @@ void Game::Update(float deltaTime, float totalTime)
 	if (Input::KeyDown(VK_ESCAPE))
 		Window::Quit();
 
-	//Update some entities
+	// Update some entities
 	entities[0]->GetTransform()->SetRotation(0.0f, totalTime, 0.0f);
 	entities[3]->GetTransform()->SetPosition((float)sin(totalTime), (float)sin(totalTime), 0.0f);
 	entities[4]->GetTransform()->SetPosition(-0.75f, -0.75f, 0.0f);
 	entities[4]->GetTransform()->SetScale((float)sin(totalTime), 1.0f, 1.0f);
+
+	// Update the cameras
+	currentCamera->Update(deltaTime);
 }
 
 
@@ -349,14 +380,14 @@ void Game::Draw(float deltaTime, float totalTime)
 	// DRAW geometry, each mesh is drawn seperately as mesh class has been created
 	for (UINT i = 0; i < entities.size(); i++)
 	{
-		entities[i]->Draw(constBuffer);
+		entities[i]->Draw(constBuffer, *currentCamera);
 	}
 
 	// Frame END
 	// - These should happen exactly ONCE PER FRAME
 	// - At the very end of the frame (after drawing *everything*)
 	{
-		//Render UI at the end of frame
+		// Render UI at the end of frame
 		ImGui::Render(); //Turn data into triangles to draw
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData()); //Draw triangles
 
@@ -378,18 +409,18 @@ void Game::Draw(float deltaTime, float totalTime)
 // --------------------------------------------------------
 void Game::UpdateUIContext(float deltaTime)
 {
-	//Send new data to ImGui
+	// Send new data to ImGui
 	ImGuiIO& io = ImGui::GetIO();
 	io.DeltaTime = deltaTime;
 	io.DisplaySize.x = (float)Window::Width();
 	io.DisplaySize.y = (float)Window::Height();
 
-	//Reset the frame
+	// Reset the frame
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	//Reset input captures
+	// Reset input captures
 	Input::SetKeyboardCapture(io.WantCaptureKeyboard);
 	Input::SetMouseCapture(io.WantCaptureMouse);
 }
@@ -399,39 +430,39 @@ void Game::UpdateUIContext(float deltaTime)
 // --------------------------------------------------------
 void Game::CustomizeUIContext()
 {
-	//Begin UI and give it a custom name
+	// Begin UI and give it a custom name
 	ImGui::Begin("Custom Context");
 
-	//Tree for app data
+	// Tree for app data
 	if (ImGui::TreeNode("Application Data"))
 	{
-		//Frame rate
+		// Frame rate
 		ImGui::Text("Framerate: %f fps", ImGui::GetIO().Framerate);
 
-		//Window size
+		// Window size
 		ImGui::Text("Window Width: %d Height: %d", Window::Width(), Window::Height());
 
-		//Color selector
+		// Color selector
 		ImGui::ColorEdit4("Background color editor", backgroundColor);
 
-		//Button to toggle vsync
+		// Button to toggle vsync
 		if (ImGui::Button("Toggle vsync"))
 			vsync = !vsync;
 
-		//Show the demo window
+		// Show the demo window
 		if (showDemo)
 		{
 			ImGui::ShowDemoWindow();
 		}
 
-		//Button for user to toggle demo
+		// Button for user to toggle demo
 		if (ImGui::Button("Toggle demo window"))
 			showDemo = !showDemo;
 
 		ImGui::TreePop();
 	}
 
-	//Create UI tree to describe each mesh being shown
+	// Create UI tree to describe each mesh being shown
 	if (ImGui::TreeNode("Meshes"))
 	{
 		for (UINT i = 0; i < meshes.size(); i++)
@@ -449,7 +480,7 @@ void Game::CustomizeUIContext()
 		ImGui::TreePop();
 	}
 
-	//UI tree for constant buffer data
+	// UI tree for constant buffer data
 	if (ImGui::TreeNode("Constant Buffer"))
 	{
 		ImGui::ColorEdit4("ColorTint", colorTint);
@@ -457,20 +488,20 @@ void Game::CustomizeUIContext()
 		ImGui::TreePop();
 	}
 
-	//UI tree for game entities
+	// UI tree for game entities
 	if (ImGui::TreeNode("Entities"))
 	{
 		for (UINT i = 0; i < entities.size(); i++)
 		{
 			ImGui::PushID(i);
-			//Reference floats for position, rotation, and scale
+			// Reference floats for position, rotation, and scale
 			XMFLOAT3 position = entities[i]->GetTransform()->GetPosition();
 			XMFLOAT3 rotation = entities[i]->GetTransform()->GetPitchYawRoll();
 			XMFLOAT3 scale = entities[i]->GetTransform()->GetScale();
 
 			if (ImGui::TreeNode("Entity", "Entity: %d", i))
 			{
-				//Display each float3
+				// Display each float3
 				if (ImGui::DragFloat3("Position", &position.x, 0.1f)) entities[i]->GetTransform()->SetPosition(position);
 				if (ImGui::DragFloat3("Rotation", &rotation.x, 0.1f)) entities[i]->GetTransform()->SetRotation(rotation);
 				if (ImGui::DragFloat3("Scale", &scale.x, 0.1f)) entities[i]->GetTransform()->SetScale(scale);
@@ -481,6 +512,40 @@ void Game::CustomizeUIContext()
 		ImGui::TreePop();
 	}
 
-	//End UI
+	// UI for cameras
+	if (ImGui::TreeNode("Cameras"))
+	{
+		// Selection area for current camera
+		static int selected = 0;
+		if (ImGui::RadioButton("Camera 1: 90FOV", &selected, 0))
+		{
+			currentCamera = cameras[0];
+		}
+		if (ImGui::RadioButton("Camera 2: 120FOV", &selected, 1))
+		{
+			currentCamera = cameras[1];
+		}
+		if (ImGui::RadioButton("Camera 3: 60FOV", &selected, 2))
+		{
+			currentCamera = cameras[2];
+		}
+
+		// Display information about each camera
+		for (UINT i = 0; i < cameras.size(); i++)
+		{
+			XMFLOAT3 position = cameras[i]->GetTransform()->GetPosition();
+
+			ImGui::PushID(i);
+			if (ImGui::TreeNode("Camera", "Camera: %d", i))
+			{
+				ImGui::DragFloat3("Position", &position.x, 0.0f);
+				ImGui::TreePop();
+			}
+			ImGui::PopID();
+		}
+		ImGui::TreePop();
+	}
+
+	// End UI
 	ImGui::End();
 }

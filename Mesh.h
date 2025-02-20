@@ -8,24 +8,24 @@
 class Mesh
 {
 public:
-	//Constructor
+	// Constructor
 	Mesh(Vertex* vertices, size_t numVertices, unsigned int* indices, size_t numIndices, const char* meshName);
 
-	//Destructor
+	// Destructor
 	~Mesh();
 
-	//Functions to return vertex and index buffer
+	// Functions to return vertex and index buffer
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetVertexBuffer();
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetIndexBuffer();
 
-	//Functions to return the count of vertices and indices
+	// Functions to return the count of vertices and indices
 	unsigned int GetVertexCount();
 	unsigned int GetIndexCount();
 
-	//Function to return the name of the mesh
+	// Function to return the name of the mesh
 	const char* GetMeshName();
 	
-	//Draw function to set the buffers and draw the geometry
+	// Draw function to set the buffers and draw the geometry
 	void Draw();
 
 private:
