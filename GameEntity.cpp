@@ -54,13 +54,18 @@ void GameEntity::Draw(Camera currentCam)
 	// Map to the GPU
 	std::shared_ptr<SimpleVertexShader> vShader = material->GetVertexShader();
 
-	vShader->SetFloat4("colorTint", material->GetColor());
 	vShader->SetMatrix4x4("m4World", GetTransform()->GetWorldMatrix());
 	vShader->SetMatrix4x4("m4View", currentCam.GetViewMatrix());
 	vShader->SetMatrix4x4("m4Projection", currentCam.GetProjectionMatrix());
 
 	vShader->CopyAllBufferData();
 
+	// Set pixel shader information
+	std::shared_ptr<SimplePixelShader> pShader = material->GetPixelShader();
+
+	pShader->SetFloat4("colorTint", material->GetColor());
+
+	pShader->CopyAllBufferData();
 	// Call draw for the mesh itself
 	mesh->Draw();
 }

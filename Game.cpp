@@ -125,18 +125,28 @@ void Game::CreateGeometry()
 	std::shared_ptr<SimplePixelShader> pShader = std::make_shared<SimplePixelShader>(
 		Graphics::Device, Graphics::Context, FixPath(L"PixelShader.cso").c_str());
 
+	std::shared_ptr<SimplePixelShader> debugUVPS = std::make_shared<SimplePixelShader>(
+		Graphics::Device, Graphics::Context, FixPath(L"DebugUVsPS.cso").c_str());
+
+	std::shared_ptr<SimplePixelShader> debugNormalPS = std::make_shared<SimplePixelShader>(
+		Graphics::Device, Graphics::Context, FixPath(L"DebugNormalsPS.cso").c_str());
+
 	// Create some temporary variables to represent colors
 	// - Not necessary, just makes things more readable
 	XMFLOAT4 red = XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
 	XMFLOAT4 green = XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
 	XMFLOAT4 blue = XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
-	XMFLOAT4 black = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f); //Adding black for A03
-	XMFLOAT4 pink = XMFLOAT4(0.96f, 0.33f, 0.73f, 1.0f); //Also adding pink
+	XMFLOAT4 black = XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f); // Adding black for A03
+	XMFLOAT4 pink = XMFLOAT4(0.96f, 0.33f, 0.73f, 1.0f); // Also adding pink
+	XMFLOAT4 white = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); // Debug tint for uv and normals
 
 	// Create Materials
 	std::shared_ptr<Material> redMaterial = std::make_shared<Material>(red, vShader, pShader);
 	std::shared_ptr<Material> greenMaterial = std::make_shared<Material>(green, vShader, pShader);
 	std::shared_ptr<Material> blueMaterial = std::make_shared<Material>(blue, vShader, pShader);
+
+	std::shared_ptr<Material> debugUV = std::make_shared<Material>(white, vShader, debugUVPS);
+	std::shared_ptr<Material> debugNormals = std::make_shared<Material>(white, vShader, debugNormalPS);
 
 	// Create models
 	std::shared_ptr<Mesh> sphere1 = std::make_shared<Mesh>(FixPath("../../Assets/Models/forJason.obj").c_str());
