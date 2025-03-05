@@ -10,6 +10,7 @@ class Mesh
 public:
 	// Constructor
 	Mesh(Vertex* vertices, size_t numVertices, unsigned int* indices, size_t numIndices, const char* meshName);
+	Mesh(const char* parameter);
 
 	// Destructor
 	~Mesh();

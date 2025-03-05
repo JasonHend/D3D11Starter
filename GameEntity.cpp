@@ -1,18 +1,20 @@
 #include "GameEntity.h"
 #include "Graphics.h"
-#include "BufferStructs.h"
 #include "Camera.h"
+#include "Material.h"
 #include <DirectXMath.h>
 
 /// <summary>
 /// Constructs a new game entity to be rendered
 /// </summary>
 /// <param name="mesh">Game entity's mesh</param>
-GameEntity::GameEntity(std::shared_ptr<Mesh> mesh)
+GameEntity::GameEntity(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> material)
 {
 	//Initialize mesh and transform
 	this->mesh = mesh;
 	transform = std::make_shared<Transform>();
+
+	this->material = material;
 }
 
 /// <summary>
@@ -28,26 +30,37 @@ std::shared_ptr<Transform> GameEntity::GetTransform() { return transform; }
 std::shared_ptr<Mesh> GameEntity::GetMesh() { return mesh; }
 
 /// <summary>
+/// Get shared pointer for a material
+/// </summary>
+/// <returns>Game entity's material</returns>
+std::shared_ptr<Material> GameEntity::GetMaterial() { return material; }
+
+/// <summary>
+/// Sets the current meshes material
+/// </summary>
+/// <param name="material">new material</param>
+void GameEntity::SetMaterial(std::shared_ptr<Material> material) { this->material = material; }
+
+/// <summary>
 /// Sets up necessary buffers and handles drawing mesh to the screen
 /// </summary>
 /// <param name="constantBuffer"></param>
-void GameEntity::Draw(Microsoft::WRL::ComPtr<ID3D11Buffer> constBuffer, Camera currentCam)
+void GameEntity::Draw(Camera currentCam)
 {
-	//Copy constant buffer code from Game::Draw()
-	//Do not clear back buffer in this context
-	//Define vertex information to pass into constant buffer
-	BufferStructs constBuffStruct;
-	constBuffStruct.colorTint = DirectX::XMFLOAT4(0.0f, 0.3f, 0.7f, 1.0f);
-	constBuffStruct.m4World = transform->GetWorldMatrix();
-	constBuffStruct.m4View = currentCam.GetViewMatrix();
-	constBuffStruct.m4Projection = currentCam.GetProjectionMatrix();
+	// Set vertex and pixel shaders
+	material->GetVertexShader()->SetShader();
+	material->GetPixelShader()->SetShader();
 
-	//Copy data to the constant buffer and un map for GPU use
-	D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
-	Graphics::Context->Map(constBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
-	memcpy(mappedBuffer.pData, &constBuffStruct, sizeof(constBuffStruct));
-	Graphics::Context->Unmap(constBuffer.Get(), 0);
+	// Map to the GPU
+	std::shared_ptr<SimpleVertexShader> vShader = material->GetVertexShader();
 
-	//Call draw for the mesh itself
+	vShader->SetFloat4("colorTint", material->GetColor());
+	vShader->SetMatrix4x4("m4World", GetTransform()->GetWorldMatrix());
+	vShader->SetMatrix4x4("m4View", currentCam.GetViewMatrix());
+	vShader->SetMatrix4x4("m4Projection", currentCam.GetProjectionMatrix());
+
+	vShader->CopyAllBufferData();
+
+	// Call draw for the mesh itself
 	mesh->Draw();
 }
