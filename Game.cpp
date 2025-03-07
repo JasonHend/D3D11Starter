@@ -131,6 +131,9 @@ void Game::CreateGeometry()
 	std::shared_ptr<SimplePixelShader> debugNormalPS = std::make_shared<SimplePixelShader>(
 		Graphics::Device, Graphics::Context, FixPath(L"DebugNormalsPS.cso").c_str());
 
+	std::shared_ptr<SimplePixelShader> customPS1 = std::make_shared<SimplePixelShader>(
+		Graphics::Device, Graphics::Context, FixPath(L"CustomPS1.cso").c_str());
+
 	// Create some temporary variables to represent colors
 	// - Not necessary, just makes things more readable
 	XMFLOAT4 red = XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -147,13 +150,94 @@ void Game::CreateGeometry()
 
 	std::shared_ptr<Material> debugUV = std::make_shared<Material>(white, vShader, debugUVPS);
 	std::shared_ptr<Material> debugNormals = std::make_shared<Material>(white, vShader, debugNormalPS);
+	std::shared_ptr<Material> customMaterial = std::make_shared<Material>(white, vShader, customPS1);
 
-	// Create models
-	std::shared_ptr<Mesh> sphere1 = std::make_shared<Mesh>(FixPath("../../Assets/Models/forJason.obj").c_str());
-	meshes.push_back(sphere1);
+	// Create meshes
+	std::shared_ptr<Mesh> cube = std::make_shared<Mesh>(FixPath("../../Assets/Models/cube.obj").c_str());
+	std::shared_ptr<Mesh> cylinder = std::make_shared<Mesh>(FixPath("../../Assets/Models/cylinder.obj").c_str());
+	std::shared_ptr<Mesh> helix = std::make_shared<Mesh>(FixPath("../../Assets/Models/helix.obj").c_str());
+	std::shared_ptr<Mesh> sphere = std::make_shared<Mesh>(FixPath("../../Assets/Models/sphere.obj").c_str());
+	std::shared_ptr<Mesh> torus = std::make_shared<Mesh>(FixPath("../../Assets/Models/torus.obj").c_str());
+	std::shared_ptr<Mesh> quad = std::make_shared<Mesh>(FixPath("../../Assets/Models/quad.obj").c_str());
+	std::shared_ptr<Mesh> quad2Side = std::make_shared<Mesh>(FixPath("../../Assets/Models/quad_double_sided.obj").c_str());
 
-	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(sphere1, redMaterial);
+	meshes.push_back(cube);
+	meshes.push_back(cylinder);
+	meshes.push_back(helix);
+	meshes.push_back(sphere);
+	meshes.push_back(torus);
+	meshes.push_back(quad);
+	meshes.push_back(quad2Side);
+
+	// Create entities
+	std::shared_ptr<GameEntity> cubeEntity = std::make_shared<GameEntity>(cube, debugUV);
+	std::shared_ptr<GameEntity> cylinderEntity = std::make_shared<GameEntity>(cylinder, debugUV);
+	std::shared_ptr<GameEntity> helixEntity = std::make_shared<GameEntity>(helix, debugUV);
+	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(sphere, debugUV);
+	std::shared_ptr<GameEntity> torusEntity = std::make_shared<GameEntity>(torus, debugUV);
+	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(quad, debugUV);
+	std::shared_ptr<GameEntity> quad2SideEntity = std::make_shared<GameEntity>(quad2Side, debugUV);
+
+	cubeEntity->GetTransform()->SetPosition(-9.0f, 0.0f, 0.0f);
+	cylinderEntity->GetTransform()->SetPosition(-6.0f, 0.0f, 0.0f);
+	helixEntity->GetTransform()->SetPosition(-3.0f, 0.0f, 0.0f);
+	torusEntity->GetTransform()->SetPosition(3.0f, 0.0f, 0.0f);
+	quadEntity->GetTransform()->SetPosition(6.0f, 0.0f, 0.0f);
+	quad2SideEntity->GetTransform()->SetPosition(9.0f, 0.0f, 0.0f);
+
+	std::shared_ptr<GameEntity> cubeEntity2 = std::make_shared<GameEntity>(cube, debugNormals);
+	std::shared_ptr<GameEntity> cylinderEntity2 = std::make_shared<GameEntity>(cylinder, debugNormals);
+	std::shared_ptr<GameEntity> helixEntity2 = std::make_shared<GameEntity>(helix, debugNormals);
+	std::shared_ptr<GameEntity> sphereEntity2 = std::make_shared<GameEntity>(sphere, debugNormals);
+	std::shared_ptr<GameEntity> torusEntity2 = std::make_shared<GameEntity>(torus, debugNormals);
+	std::shared_ptr<GameEntity> quadEntity2 = std::make_shared<GameEntity>(quad, debugNormals);
+	std::shared_ptr<GameEntity> quad2SideEntity2 = std::make_shared<GameEntity>(quad2Side, debugNormals);
+
+	cubeEntity2->GetTransform()->SetPosition(-9.0f, 5.0f, 0.0f);
+	cylinderEntity2->GetTransform()->SetPosition(-6.0f, 5.0f, 0.0f);
+	helixEntity2->GetTransform()->SetPosition(-3.0f, 5.0f, 0.0f);
+	sphereEntity2->GetTransform()->SetPosition(0.0f, 5.0f, 0.0f);
+	torusEntity2->GetTransform()->SetPosition(3.0f, 5.0f, 0.0f);
+	quadEntity2->GetTransform()->SetPosition(6.0f, 5.0f, 0.0f);
+	quad2SideEntity2->GetTransform()->SetPosition(9.0f, 5.0f, 0.0f);
+
+	std::shared_ptr<GameEntity> cubeEntity3 = std::make_shared<GameEntity>(cube, customMaterial);
+	std::shared_ptr<GameEntity> cylinderEntity3 = std::make_shared<GameEntity>(cylinder, customMaterial);
+	std::shared_ptr<GameEntity> helixEntity3 = std::make_shared<GameEntity>(helix, customMaterial);
+	std::shared_ptr<GameEntity> sphereEntity3 = std::make_shared<GameEntity>(sphere, customMaterial);
+	std::shared_ptr<GameEntity> torusEntity3 = std::make_shared<GameEntity>(torus, customMaterial);
+	std::shared_ptr<GameEntity> quadEntity3 = std::make_shared<GameEntity>(quad, customMaterial);
+	std::shared_ptr<GameEntity> quad2SideEntity3 = std::make_shared<GameEntity>(quad2Side, customMaterial);
+
+	cubeEntity3->GetTransform()->SetPosition(-9.0f, -5.0f, 0.0f);
+	cylinderEntity3->GetTransform()->SetPosition(-6.0f, -5.0f, 0.0f);
+	helixEntity3->GetTransform()->SetPosition(-3.0f, -5.0f, 0.0f);
+	sphereEntity3->GetTransform()->SetPosition(0.0f, -5.0f, 0.0f);
+	torusEntity3->GetTransform()->SetPosition(3.0f, -5.0f, 0.0f);
+	quadEntity3->GetTransform()->SetPosition(6.0f, -5.0f, 0.0f);
+	quad2SideEntity3->GetTransform()->SetPosition(9.0f, -5.0f, 0.0f);
+
+	entities.push_back(cubeEntity);
+	entities.push_back(cylinderEntity);
+	entities.push_back(helixEntity);
 	entities.push_back(sphereEntity);
+	entities.push_back(torusEntity);
+	entities.push_back(quadEntity);
+	entities.push_back(quad2SideEntity);
+	entities.push_back(cubeEntity2);
+	entities.push_back(cylinderEntity2);
+	entities.push_back(helixEntity2);
+	entities.push_back(sphereEntity2);
+	entities.push_back(torusEntity2);
+	entities.push_back(quadEntity2);
+	entities.push_back(quad2SideEntity2);
+	entities.push_back(cubeEntity3);
+	entities.push_back(cylinderEntity3);
+	entities.push_back(helixEntity3);
+	entities.push_back(sphereEntity3);
+	entities.push_back(torusEntity3);
+	entities.push_back(quadEntity3);
+	entities.push_back(quad2SideEntity3);
 }
 
 
@@ -187,7 +271,6 @@ void Game::Update(float deltaTime, float totalTime)
 		Window::Quit();
 
 	// Update some entities
-	entities[0]->GetTransform()->SetRotation(XMFLOAT3(0.0f, 90.0f, 0.0f));
 
 	// Update the cameras
 	currentCamera->Update(deltaTime);

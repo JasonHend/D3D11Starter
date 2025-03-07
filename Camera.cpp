@@ -52,14 +52,14 @@ void Camera::UpdateProjectionMatrix(float aspectRatio)
 void Camera::Update(float dt)
 {
     // Handle input
-    if (Input::KeyDown('W')) { transform->MoveRelative(0.0f, 0.0f, 0.8f * dt); }
-    if (Input::KeyDown('S')) { transform->MoveRelative(0.0f, 0.0f, -0.8f * dt); }
+    if (Input::KeyDown('W')) { transform->MoveRelative(0.0f, 0.0f, 2.0f * dt); }
+    if (Input::KeyDown('S')) { transform->MoveRelative(0.0f, 0.0f, -2.0f * dt); }
 
-    if (Input::KeyDown('A')) { transform->MoveRelative(-0.8f * dt, 0.0f, 0.0f); }
-    if (Input::KeyDown('D')) { transform->MoveRelative(0.8f * dt, 0.0f, 0.0f); }
+    if (Input::KeyDown('A')) { transform->MoveRelative(-2.0f * dt, 0.0f, 0.0f); }
+    if (Input::KeyDown('D')) { transform->MoveRelative(2.0f * dt, 0.0f, 0.0f); }
 
-    if (Input::KeyDown(' ')) { transform->MoveAbsolute(0.0f, 0.8f * dt, 0.0f); }
-    if (Input::KeyDown(VK_CONTROL)) { transform->MoveAbsolute(0.0f, -0.8f * dt, 0.0f); }
+    if (Input::KeyDown(' ')) { transform->MoveAbsolute(0.0f, 2.0f * dt, 0.0f); }
+    if (Input::KeyDown(VK_CONTROL)) { transform->MoveAbsolute(0.0f, -2.0f * dt, 0.0f); }
 
     // Mouse input
     if (Input::MouseLeftDown())
