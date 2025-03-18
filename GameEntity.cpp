@@ -60,12 +60,16 @@ void GameEntity::Draw(Camera currentCam)
 
 	vShader->CopyAllBufferData();
 
+	// Prepare the material for drawing
+	material->PrepareMaterial();
+
 	// Set pixel shader information
 	std::shared_ptr<SimplePixelShader> pShader = material->GetPixelShader();
 
 	pShader->SetFloat4("colorTint", material->GetColor());
 
 	pShader->CopyAllBufferData();
+	
 	// Call draw for the mesh itself
 	mesh->Draw();
 }

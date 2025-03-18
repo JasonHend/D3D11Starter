@@ -9,6 +9,7 @@
 #include "Camera.h"
 #include "SimpleShader.h"
 #include "Material.h"
+#include "WICTextureLoader.h"
 
 #include <DirectXMath.h>
 #include <vector>
@@ -125,6 +126,9 @@ void Game::CreateGeometry()
 	std::shared_ptr<SimplePixelShader> pShader = std::make_shared<SimplePixelShader>(
 		Graphics::Device, Graphics::Context, FixPath(L"PixelShader.cso").c_str());
 
+	std::shared_ptr<SimplePixelShader> twoTexturesPS = std::make_shared<SimplePixelShader>(
+		Graphics::Device, Graphics::Context, FixPath(L"TwoMaterialsPS.cso").c_str());
+
 	std::shared_ptr<SimplePixelShader> debugUVPS = std::make_shared<SimplePixelShader>(
 		Graphics::Device, Graphics::Context, FixPath(L"DebugUVsPS.cso").c_str());
 
@@ -143,14 +147,54 @@ void Game::CreateGeometry()
 	XMFLOAT4 pink = XMFLOAT4(0.96f, 0.33f, 0.73f, 1.0f); // Also adding pink
 	XMFLOAT4 white = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); // Debug tint for uv and normals
 
-	// Create Materials
-	std::shared_ptr<Material> redMaterial = std::make_shared<Material>(red, vShader, pShader);
-	std::shared_ptr<Material> greenMaterial = std::make_shared<Material>(green, vShader, pShader);
-	std::shared_ptr<Material> blueMaterial = std::make_shared<Material>(blue, vShader, pShader);
+	// Create sampler states
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampleState;
+	D3D11_SAMPLER_DESC sampleDesc = {};
+	sampleDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampleDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampleDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampleDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampleDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	Graphics::Device.Get()->CreateSamplerState(&sampleDesc, sampleState.GetAddressOf());
 
-	std::shared_ptr<Material> debugUV = std::make_shared<Material>(white, vShader, debugUVPS);
-	std::shared_ptr<Material> debugNormals = std::make_shared<Material>(white, vShader, debugNormalPS);
-	std::shared_ptr<Material> customMaterial = std::make_shared<Material>(white, vShader, customPS1);
+	// Load in textures
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> fabricSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> groundSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> gravelSRV;
+
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Fabric061Color.png").c_str(), nullptr, fabricSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Ground048Color.png").c_str(), nullptr, groundSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Gravel024Color.png").c_str(), nullptr, gravelSRV.GetAddressOf());
+
+	// Create Materials
+	std::shared_ptr<Material> whiteMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
+	std::shared_ptr<Material> greenMaterial = std::make_shared<Material>(green, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
+	std::shared_ptr<Material> blueMaterial = std::make_shared<Material>(blue, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
+	std::shared_ptr<Material> twoTexturesMaterial = std::make_shared<Material>(white, vShader, twoTexturesPS, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
+
+	std::shared_ptr<Material> debugUV = std::make_shared<Material>(white, vShader, debugUVPS, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
+	std::shared_ptr<Material> debugNormals = std::make_shared<Material>(white, vShader, debugNormalPS, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
+	std::shared_ptr<Material> customMaterial = std::make_shared<Material>(white, vShader, customPS1, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
+
+	materials.push_back(whiteMaterial);
+	materials.push_back(greenMaterial);
+	materials.push_back(blueMaterial);
+	materials.push_back(twoTexturesMaterial);
+
+	materials.push_back(debugUV);
+	materials.push_back(debugNormals);
+	materials.push_back(customMaterial);
+
+	// Apply textures to materials using pShader
+	whiteMaterial->AddTextureSRV("SurfaceTexture", fabricSRV);
+	whiteMaterial->AddSampler("BasicSampler", sampleState);
+	greenMaterial->AddTextureSRV("SurfaceTexture", groundSRV);
+	greenMaterial->AddSampler("BasicSampler", sampleState);
+	blueMaterial->AddTextureSRV("SurfaceTexture", fabricSRV);
+	blueMaterial->AddSampler("BasicSampler", sampleState);
+	twoTexturesMaterial->AddTextureSRV("SurfaceTexture", groundSRV);
+	twoTexturesMaterial->AddTextureSRV("SurfaceTexture2", gravelSRV);
+	twoTexturesMaterial->AddSampler("BasicSampler", sampleState);
 
 	// Create meshes
 	std::shared_ptr<Mesh> cube = std::make_shared<Mesh>(FixPath("../../Assets/Models/cube.obj").c_str());
@@ -170,13 +214,13 @@ void Game::CreateGeometry()
 	meshes.push_back(quad2Side);
 
 	// Create entities
-	std::shared_ptr<GameEntity> cubeEntity = std::make_shared<GameEntity>(cube, debugUV);
-	std::shared_ptr<GameEntity> cylinderEntity = std::make_shared<GameEntity>(cylinder, debugUV);
-	std::shared_ptr<GameEntity> helixEntity = std::make_shared<GameEntity>(helix, debugUV);
-	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(sphere, debugUV);
-	std::shared_ptr<GameEntity> torusEntity = std::make_shared<GameEntity>(torus, debugUV);
-	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(quad, debugUV);
-	std::shared_ptr<GameEntity> quad2SideEntity = std::make_shared<GameEntity>(quad2Side, debugUV);
+	std::shared_ptr<GameEntity> cubeEntity = std::make_shared<GameEntity>(cube, whiteMaterial);
+	std::shared_ptr<GameEntity> cylinderEntity = std::make_shared<GameEntity>(cylinder, blueMaterial);
+	std::shared_ptr<GameEntity> helixEntity = std::make_shared<GameEntity>(helix, greenMaterial);
+	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(sphere, whiteMaterial);
+	std::shared_ptr<GameEntity> torusEntity = std::make_shared<GameEntity>(torus, greenMaterial);
+	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(quad, twoTexturesMaterial);
+	std::shared_ptr<GameEntity> quad2SideEntity = std::make_shared<GameEntity>(quad2Side, twoTexturesMaterial);
 
 	cubeEntity->GetTransform()->SetPosition(-9.0f, 0.0f, 0.0f);
 	cylinderEntity->GetTransform()->SetPosition(-6.0f, 0.0f, 0.0f);
@@ -185,38 +229,6 @@ void Game::CreateGeometry()
 	quadEntity->GetTransform()->SetPosition(6.0f, 0.0f, 0.0f);
 	quad2SideEntity->GetTransform()->SetPosition(9.0f, 0.0f, 0.0f);
 
-	std::shared_ptr<GameEntity> cubeEntity2 = std::make_shared<GameEntity>(cube, debugNormals);
-	std::shared_ptr<GameEntity> cylinderEntity2 = std::make_shared<GameEntity>(cylinder, debugNormals);
-	std::shared_ptr<GameEntity> helixEntity2 = std::make_shared<GameEntity>(helix, debugNormals);
-	std::shared_ptr<GameEntity> sphereEntity2 = std::make_shared<GameEntity>(sphere, debugNormals);
-	std::shared_ptr<GameEntity> torusEntity2 = std::make_shared<GameEntity>(torus, debugNormals);
-	std::shared_ptr<GameEntity> quadEntity2 = std::make_shared<GameEntity>(quad, debugNormals);
-	std::shared_ptr<GameEntity> quad2SideEntity2 = std::make_shared<GameEntity>(quad2Side, debugNormals);
-
-	cubeEntity2->GetTransform()->SetPosition(-9.0f, 5.0f, 0.0f);
-	cylinderEntity2->GetTransform()->SetPosition(-6.0f, 5.0f, 0.0f);
-	helixEntity2->GetTransform()->SetPosition(-3.0f, 5.0f, 0.0f);
-	sphereEntity2->GetTransform()->SetPosition(0.0f, 5.0f, 0.0f);
-	torusEntity2->GetTransform()->SetPosition(3.0f, 5.0f, 0.0f);
-	quadEntity2->GetTransform()->SetPosition(6.0f, 5.0f, 0.0f);
-	quad2SideEntity2->GetTransform()->SetPosition(9.0f, 5.0f, 0.0f);
-
-	std::shared_ptr<GameEntity> cubeEntity3 = std::make_shared<GameEntity>(cube, customMaterial);
-	std::shared_ptr<GameEntity> cylinderEntity3 = std::make_shared<GameEntity>(cylinder, customMaterial);
-	std::shared_ptr<GameEntity> helixEntity3 = std::make_shared<GameEntity>(helix, customMaterial);
-	std::shared_ptr<GameEntity> sphereEntity3 = std::make_shared<GameEntity>(sphere, customMaterial);
-	std::shared_ptr<GameEntity> torusEntity3 = std::make_shared<GameEntity>(torus, customMaterial);
-	std::shared_ptr<GameEntity> quadEntity3 = std::make_shared<GameEntity>(quad, customMaterial);
-	std::shared_ptr<GameEntity> quad2SideEntity3 = std::make_shared<GameEntity>(quad2Side, customMaterial);
-
-	cubeEntity3->GetTransform()->SetPosition(-9.0f, -5.0f, 0.0f);
-	cylinderEntity3->GetTransform()->SetPosition(-6.0f, -5.0f, 0.0f);
-	helixEntity3->GetTransform()->SetPosition(-3.0f, -5.0f, 0.0f);
-	sphereEntity3->GetTransform()->SetPosition(0.0f, -5.0f, 0.0f);
-	torusEntity3->GetTransform()->SetPosition(3.0f, -5.0f, 0.0f);
-	quadEntity3->GetTransform()->SetPosition(6.0f, -5.0f, 0.0f);
-	quad2SideEntity3->GetTransform()->SetPosition(9.0f, -5.0f, 0.0f);
-
 	entities.push_back(cubeEntity);
 	entities.push_back(cylinderEntity);
 	entities.push_back(helixEntity);
@@ -224,20 +236,6 @@ void Game::CreateGeometry()
 	entities.push_back(torusEntity);
 	entities.push_back(quadEntity);
 	entities.push_back(quad2SideEntity);
-	entities.push_back(cubeEntity2);
-	entities.push_back(cylinderEntity2);
-	entities.push_back(helixEntity2);
-	entities.push_back(sphereEntity2);
-	entities.push_back(torusEntity2);
-	entities.push_back(quadEntity2);
-	entities.push_back(quad2SideEntity2);
-	entities.push_back(cubeEntity3);
-	entities.push_back(cylinderEntity3);
-	entities.push_back(helixEntity3);
-	entities.push_back(sphereEntity3);
-	entities.push_back(torusEntity3);
-	entities.push_back(quadEntity3);
-	entities.push_back(quad2SideEntity3);
 }
 
 
@@ -269,8 +267,6 @@ void Game::Update(float deltaTime, float totalTime)
 	// Example input checking: Quit if the escape key is pressed
 	if (Input::KeyDown(VK_ESCAPE))
 		Window::Quit();
-
-	// Update some entities
 
 	// Update the cameras
 	currentCamera->Update(deltaTime);
@@ -453,6 +449,34 @@ void Game::CustomizeUIContext()
 			if (ImGui::TreeNode("Camera", "Camera: %d", i))
 			{
 				ImGui::DragFloat3("Position", &position.x, 0.0f);
+				ImGui::TreePop();
+			}
+			ImGui::PopID();
+		}
+		ImGui::TreePop();
+	}
+
+	// Information about materials
+	if (ImGui::TreeNode("Materials"))
+	{
+		// Display each material
+		for (UINT i = 0; i < materials.size(); i++)
+		{
+			ImGui::PushID(i);
+			if (ImGui::TreeNode("Material Node", "Material: %d", i))
+			{
+				// Color tint
+				XMFLOAT4 color = materials[i]->GetColor();
+				if (ImGui::ColorEdit4("Color Tint", &color.x))
+					materials[i]->SetColor(color);
+				
+				// UV scale and offset
+				XMFLOAT2 scale = materials[i]->GetScale();
+				XMFLOAT2 offset = materials[i]->GetOffset();
+				
+				if (ImGui::DragFloat2("UV Scale", &scale.x, 0.2f, 1.0f, 10.0f)) materials[i]->SetScale(scale);
+				if (ImGui::DragFloat2("UV Offset", &offset.x, 0.2f, -10.0f, 10.0f)) materials[i]->SetOffset(offset);
+
 				ImGui::TreePop();
 			}
 			ImGui::PopID();

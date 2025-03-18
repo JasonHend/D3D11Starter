@@ -157,5 +157,11 @@
     <FxCompile Include="CustomPS1.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="TwoMaterialsPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>
