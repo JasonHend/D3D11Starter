@@ -1,12 +1,14 @@
 #include "Material.h"
 
-Material::Material(DirectX::XMFLOAT4 colorTint, std::shared_ptr<SimpleVertexShader> vShader, std::shared_ptr<SimplePixelShader> pShader, DirectX::XMFLOAT2 scale, DirectX::XMFLOAT2 offset)
+// Constructor
+Material::Material(DirectX::XMFLOAT4 colorTint, std::shared_ptr<SimpleVertexShader> vShader, std::shared_ptr<SimplePixelShader> pShader, DirectX::XMFLOAT2 scale, DirectX::XMFLOAT2 offset, float roughness)
 {
 	this->colorTint = colorTint;
 	this->vShader = vShader;
 	this->pShader = pShader;
 	this->scale = scale;
 	this->offset = offset;
+	this->roughness = roughness;
 }
 
 // Getters
@@ -15,6 +17,7 @@ std::shared_ptr<SimpleVertexShader> Material::GetVertexShader() { return vShader
 std::shared_ptr<SimplePixelShader> Material::GetPixelShader() { return pShader; }
 DirectX::XMFLOAT2 Material::GetScale() { return scale; }
 DirectX::XMFLOAT2 Material::GetOffset() { return offset; }
+std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& Material::GetSRVs() { return textureSRVs; }
 
 // Setters
 void Material::SetColor(DirectX::XMFLOAT4 newColor) { colorTint = newColor; }
@@ -46,10 +49,12 @@ void Material::AddSampler(std::string samplerName, Microsoft::WRL::ComPtr<ID3D11
 /// <summary>
 /// Sets the srvs and samplers before drawing
 /// </summary>
-void Material::PrepareMaterial()
+void Material::PrepareMaterial(Camera currentCam)
 {
 	pShader->SetFloat2("scale", scale);
 	pShader->SetFloat2("offset", offset);
+	pShader->SetFloat("roughness", roughness);
+	pShader->SetFloat3("cameraPosition", currentCam.GetTransform()->GetPosition());
 
 	for (auto& t : textureSRVs) { pShader->SetShaderResourceView(t.first.c_str(), t.second); }
 	for (auto& s : samplers) { pShader->SetSamplerState(s.first.c_str(), s.second); }

@@ -57,11 +57,12 @@ void GameEntity::Draw(Camera currentCam)
 	vShader->SetMatrix4x4("m4World", GetTransform()->GetWorldMatrix());
 	vShader->SetMatrix4x4("m4View", currentCam.GetViewMatrix());
 	vShader->SetMatrix4x4("m4Projection", currentCam.GetProjectionMatrix());
+	vShader->SetMatrix4x4("m4worldInvTranspose", GetTransform()->GetWorldInverseTransposeMatrix());
 
 	vShader->CopyAllBufferData();
 
 	// Prepare the material for drawing
-	material->PrepareMaterial();
+	material->PrepareMaterial(currentCam);
 
 	// Set pixel shader information
 	std::shared_ptr<SimplePixelShader> pShader = material->GetPixelShader();

@@ -1,30 +1,18 @@
+#include "ShaderHeader.hlsli"
 
 // Create sampler and surface texture values
 Texture2D SurfaceTexture : register(t0);
 SamplerState BasicSampler : register(s0);
-
-// Struct representing the data we expect to receive from earlier pipeline stages
-// - Should match the output of our corresponding vertex shader
-// - The name of the struct itself is unimportant
-// - The variable names don't have to match other shaders (just the semantics)
-// - Each variable must have a semantic, which defines its usage
-struct VertexToPixel
-{
-	// Data type
-	//  |
-	//  |   Name          Semantic
-	//  |    |                |
-	//  v    v                v
-	float4 screenPosition	: SV_POSITION;
-    float2 uv : TEXCOORD;
-    float3 normal : NORMAL;
-};
 
 cbuffer ExternalData : register(b0)
 {
     float4 colorTint;
     float2 scale;
     float2 offset;
+    float roughness;
+    float3 cameraPosition;
+    float3 ambientLight;
+    Light lights[5];
 };
 
 // --------------------------------------------------------
@@ -38,16 +26,45 @@ cbuffer ExternalData : register(b0)
 // --------------------------------------------------------
 float4 main(VertexToPixel input) : SV_TARGET
 {
+    int lightCount = 5;
+
+    // Adjust normals
+    input.normal = normalize(input.normal);
+    
 	// Scale and offset UVs
     input.uv = input.uv * scale + offset;
 	
 	// Adjust texture variables
     float4 surfaceColor = SurfaceTexture.Sample(BasicSampler, input.uv);
     surfaceColor *= colorTint;
-	
+    
+    // Ambient
+    float3 totalLight = ambientLight * surfaceColor;
+    
+    for (int i = 0; i < lightCount; i++)
+    {
+        Light light = lights[i];
+        light.direction = normalize(light.direction);
+        
+        switch (light.type)
+        {
+            case LIGHT_TYPE_DIRECTIONAL:
+                totalLight += DirectionalLight(light, input.normal, surfaceColor, cameraPosition, input.worldPosition, roughness);
+                break;
+            
+            case LIGHT_TYPE_POINT:
+                totalLight += PointLight(light, input.normal, surfaceColor, cameraPosition, input.worldPosition, roughness);
+                break;
+            
+            case LIGHT_TYPE_SPOT:
+                totalLight += SpotLight(light, input.normal, surfaceColor, cameraPosition, input.worldPosition, roughness);
+                break;
+        }
+    }
+    
 	// Just return the input color
 	// - This color (like most values passing through the rasterizer) is 
 	//   interpolated for each pixel between the corresponding vertices 
 	//   of the triangle we're rendering
-    return surfaceColor;
+    return float4(totalLight, 1);
 }

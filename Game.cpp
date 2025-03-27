@@ -10,6 +10,7 @@
 #include "SimpleShader.h"
 #include "Material.h"
 #include "WICTextureLoader.h"
+#include "Lights.h"
 
 #include <DirectXMath.h>
 #include <vector>
@@ -89,6 +90,47 @@ void Game::Initialize()
 
 		currentCamera = cameras[0];
 	}
+
+	// Create lighting
+	{
+		ambientLight = XMFLOAT3(0.13f, 0.13f, 0.13f);
+		directionalLight.type = LIGHT_TYPE_DIRECTIONAL;
+		directionalLight.direction = XMFLOAT3(1, -1, 0);
+		directionalLight.color = XMFLOAT3(0, 0, 1);
+		directionalLight.intensity = 1.0;
+
+		blueDirectionLight.type = LIGHT_TYPE_DIRECTIONAL;
+		blueDirectionLight.direction = XMFLOAT3(-1, -1, 0);
+		blueDirectionLight.color = XMFLOAT3(0, 1, 0);
+		blueDirectionLight.intensity = 1.0;
+
+		redDirectionLight.type = LIGHT_TYPE_DIRECTIONAL;
+		redDirectionLight.direction = XMFLOAT3(1, 1, 0);
+		redDirectionLight.color = XMFLOAT3(1, 0, 0);
+		redDirectionLight.intensity = 1.0;
+
+		whiteLight.type = LIGHT_TYPE_POINT;
+		whiteLight.direction = XMFLOAT3(0, -1, 0);
+		whiteLight.color = XMFLOAT3(1, 1, 1);
+		whiteLight.intensity = 1.0;
+		whiteLight.position = XMFLOAT3(0, 4, 0);
+		whiteLight.range = 5;
+
+		spotLight.type = LIGHT_TYPE_SPOT;
+		spotLight.direction = XMFLOAT3(0, -1, 0);
+		spotLight.color = XMFLOAT3(1, 0, 1);
+		spotLight.intensity = 1.0;
+		spotLight.position = XMFLOAT3(7, 2, 0);
+		spotLight.spotInnerAngle = XMConvertToRadians(10);
+		spotLight.spotOuterAngle = XMConvertToRadians(20);
+		spotLight.range = 8;
+
+		lights.push_back(directionalLight);
+		lights.push_back(blueDirectionLight);
+		lights.push_back(redDirectionLight);
+		lights.push_back(whiteLight);
+		lights.push_back(spotLight);
+	}
 }
 
 
@@ -167,14 +209,14 @@ void Game::CreateGeometry()
 	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Gravel024Color.png").c_str(), nullptr, gravelSRV.GetAddressOf());
 
 	// Create Materials
-	std::shared_ptr<Material> whiteMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
-	std::shared_ptr<Material> greenMaterial = std::make_shared<Material>(green, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
-	std::shared_ptr<Material> blueMaterial = std::make_shared<Material>(blue, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
-	std::shared_ptr<Material> twoTexturesMaterial = std::make_shared<Material>(white, vShader, twoTexturesPS, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
+	std::shared_ptr<Material> whiteMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.0f);
+	std::shared_ptr<Material> greenMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.37f);
+	std::shared_ptr<Material> blueMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 1.0f);
+	std::shared_ptr<Material> twoTexturesMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.68f);
 
-	std::shared_ptr<Material> debugUV = std::make_shared<Material>(white, vShader, debugUVPS, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
-	std::shared_ptr<Material> debugNormals = std::make_shared<Material>(white, vShader, debugNormalPS, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
-	std::shared_ptr<Material> customMaterial = std::make_shared<Material>(white, vShader, customPS1, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0));
+	std::shared_ptr<Material> debugUV = std::make_shared<Material>(white, vShader, debugUVPS, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.0f);
+	std::shared_ptr<Material> debugNormals = std::make_shared<Material>(white, vShader, debugNormalPS, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.5f);
+	std::shared_ptr<Material> customMaterial = std::make_shared<Material>(white, vShader, customPS1, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.34f);
 
 	materials.push_back(whiteMaterial);
 	materials.push_back(greenMaterial);
@@ -290,6 +332,12 @@ void Game::Draw(float deltaTime, float totalTime)
 	// DRAW geometry, each mesh is drawn seperately as mesh class has been created
 	for (UINT i = 0; i < entities.size(); i++)
 	{
+		// Pass in the ambient light to each shader
+		entities[i]->GetMaterial()->GetPixelShader()->SetFloat3("ambientLight", ambientLight);
+		entities[i]->GetMaterial()->GetPixelShader()->SetData(
+			"lights",
+			&lights[0],
+			sizeof(Light) * (int)lights.size());
 		entities[i]->Draw(*currentCamera);
 	}
 
@@ -465,6 +513,13 @@ void Game::CustomizeUIContext()
 			ImGui::PushID(i);
 			if (ImGui::TreeNode("Material Node", "Material: %d", i))
 			{
+				// Displaying textures
+				for (auto& texture : materials[i]->GetSRVs())
+				{
+					ImGui::Text(texture.first.c_str());
+					ImGui::Image((ImTextureID)texture.second.Get(), ImVec2(256, 256));
+				}
+
 				// Color tint
 				XMFLOAT4 color = materials[i]->GetColor();
 				if (ImGui::ColorEdit4("Color Tint", &color.x))
@@ -477,6 +532,30 @@ void Game::CustomizeUIContext()
 				if (ImGui::DragFloat2("UV Scale", &scale.x, 0.2f, 1.0f, 10.0f)) materials[i]->SetScale(scale);
 				if (ImGui::DragFloat2("UV Offset", &offset.x, 0.2f, -10.0f, 10.0f)) materials[i]->SetOffset(offset);
 
+				ImGui::TreePop();
+			}
+			ImGui::PopID();
+		}
+		ImGui::TreePop();
+	}
+
+	// Color change for lights
+	if (ImGui::TreeNode("Lights"))
+	{
+		// Display ambient light
+		if (ImGui::TreeNode("Ambient light"))
+		{
+			ImGui::ColorEdit3("Ambient color", &ambientLight.x);
+			ImGui::TreePop();
+		}
+
+		// Display each light
+		for (UINT i = 0; i < lights.size(); i++)
+		{
+			ImGui::PushID(i);
+			if (ImGui::TreeNode("Light Node", "Light %d", i))
+			{
+				ImGui::ColorEdit3("Color", &lights[i].color.x);
 				ImGui::TreePop();
 			}
 			ImGui::PopID();

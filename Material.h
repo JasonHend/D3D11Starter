@@ -1,12 +1,13 @@
 #pragma once
 #include "SimpleShader.h"
+#include "Camera.h"
 #include <memory>
 
 class Material
 {
 public:
 	// Constructor
-	Material(DirectX::XMFLOAT4 colorTint, std::shared_ptr<SimpleVertexShader> vShader, std::shared_ptr<SimplePixelShader> pShader, DirectX::XMFLOAT2 scale, DirectX::XMFLOAT2 offset);
+	Material(DirectX::XMFLOAT4 colorTint, std::shared_ptr<SimpleVertexShader> vShader, std::shared_ptr<SimplePixelShader> pShader, DirectX::XMFLOAT2 scale, DirectX::XMFLOAT2 offset, float roughness);
 
 	// Getters
 	DirectX::XMFLOAT4 GetColor();
@@ -14,6 +15,7 @@ public:
 	std::shared_ptr<SimplePixelShader> GetPixelShader();
 	DirectX::XMFLOAT2 GetScale();
 	DirectX::XMFLOAT2 GetOffset();
+	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>>& GetSRVs();
 
 	// Setters
 	void SetColor(DirectX::XMFLOAT4 newColor);
@@ -27,7 +29,7 @@ public:
 	void AddSampler(std::string samplerName, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler);
 
 	// Prepare material for drawing
-	void PrepareMaterial();
+	void PrepareMaterial(Camera currentCam);
 
 private:
 	// Color along with both pixel and vertex shaders
@@ -42,5 +44,8 @@ private:
 	// Scale and Offset
 	DirectX::XMFLOAT2 scale;
 	DirectX::XMFLOAT2 offset;
+
+	// Roughness
+	float roughness;
 };
 

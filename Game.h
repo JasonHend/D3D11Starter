@@ -9,6 +9,7 @@
 #include <DirectXMath.h>
 #include "Camera.h"
 #include "Material.h"
+#include "Lights.h"
 
 class Game
 {
@@ -60,5 +61,14 @@ private:
 	// Camera associated variables
 	std::shared_ptr<Camera> currentCamera;
 	std::vector<std::shared_ptr<Camera>> cameras;
+
+	// Lighting variables
+	DirectX::XMFLOAT3 ambientLight;
+	Light directionalLight;
+	Light blueDirectionLight;
+	Light redDirectionLight;
+	Light whiteLight;
+	Light spotLight;
+	std::vector<Light> lights;
 };
 
