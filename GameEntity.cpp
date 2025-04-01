@@ -57,7 +57,7 @@ void GameEntity::Draw(Camera currentCam)
 	vShader->SetMatrix4x4("m4World", GetTransform()->GetWorldMatrix());
 	vShader->SetMatrix4x4("m4View", currentCam.GetViewMatrix());
 	vShader->SetMatrix4x4("m4Projection", currentCam.GetProjectionMatrix());
-	vShader->SetMatrix4x4("m4worldInvTranspose", GetTransform()->GetWorldInverseTransposeMatrix());
+	vShader->SetMatrix4x4("m4WorldInvTranspose", GetTransform()->GetWorldInverseTransposeMatrix());
 
 	vShader->CopyAllBufferData();
 

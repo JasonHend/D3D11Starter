@@ -6,7 +6,7 @@ cbuffer ExternalData : register(b0)
     float4x4 m4World;
     float4x4 m4View;
     float4x4 m4Projection;
-    float4x4 m4worldInvTranspose;
+    float4x4 m4WorldInvTranspose;
 }
 
 // --------------------------------------------------------
@@ -32,9 +32,10 @@ VertexToPixel main( VertexShaderInput input )
     matrix wvp = mul(m4Projection, mul(m4View, m4World));
     output.screenPosition = mul(wvp, float4(input.localPosition, 1.0f));
 
-	// Pass uv and normal through
+	// Pass uv normal and tangent data through
     output.uv = input.uv;
-    output.normal = mul((float3x3)m4worldInvTranspose, input.normal);
+    output.normal = mul((float3x3)m4WorldInvTranspose, input.normal);
+    output.tangent = mul((float3x3) m4World, input.tangent);
 	
 	// Update world position of output
     output.worldPosition = mul(m4World, float4(input.localPosition, 1)).xyz;

@@ -199,14 +199,22 @@ void Game::CreateGeometry()
 	sampleDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	Graphics::Device.Get()->CreateSamplerState(&sampleDesc, sampleState.GetAddressOf());
 
-	// Load in textures
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> fabricSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> groundSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> gravelSRV;
+	// Load in textures and normals
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> leavesSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> boulderSRV;
 
-	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Fabric061Color.png").c_str(), nullptr, fabricSRV.GetAddressOf());
-	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Ground048Color.png").c_str(), nullptr, groundSRV.GetAddressOf());
-	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Gravel024Color.png").c_str(), nullptr, gravelSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/metalColor1k.png").c_str(), nullptr, metalSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/leavesColor1k.png").c_str(), nullptr, leavesSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/boulderColor1k.png").c_str(), nullptr, boulderSRV.GetAddressOf());
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalNormalSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> leavesNormalSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> boulderNormalSRV;
+
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/metalNormal1k.png").c_str(), nullptr, metalNormalSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/leavesNormal1k.png").c_str(), nullptr, leavesNormalSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/boulderNormal1k.png").c_str(), nullptr, boulderNormalSRV.GetAddressOf());
 
 	// Create Materials
 	std::shared_ptr<Material> whiteMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.0f);
@@ -227,15 +235,21 @@ void Game::CreateGeometry()
 	materials.push_back(debugNormals);
 	materials.push_back(customMaterial);
 
-	// Apply textures to materials using pShader
-	whiteMaterial->AddTextureSRV("SurfaceTexture", fabricSRV);
+	// Apply textures and normals to materials using pShader
+	whiteMaterial->AddTextureSRV("SurfaceTexture", metalSRV);
+	whiteMaterial->AddTextureSRV("NormalMap", metalNormalSRV);
 	whiteMaterial->AddSampler("BasicSampler", sampleState);
-	greenMaterial->AddTextureSRV("SurfaceTexture", groundSRV);
+
+	greenMaterial->AddTextureSRV("SurfaceTexture", leavesSRV);
+	greenMaterial->AddTextureSRV("NormalMap", leavesNormalSRV);
 	greenMaterial->AddSampler("BasicSampler", sampleState);
-	blueMaterial->AddTextureSRV("SurfaceTexture", fabricSRV);
+
+	blueMaterial->AddTextureSRV("SurfaceTexture", boulderSRV);
+	blueMaterial->AddTextureSRV("NormalMap", boulderNormalSRV);
 	blueMaterial->AddSampler("BasicSampler", sampleState);
-	twoTexturesMaterial->AddTextureSRV("SurfaceTexture", groundSRV);
-	twoTexturesMaterial->AddTextureSRV("SurfaceTexture2", gravelSRV);
+
+	twoTexturesMaterial->AddTextureSRV("SurfaceTexture", leavesSRV);
+	twoTexturesMaterial->AddTextureSRV("SurfaceTexture2", boulderSRV);
 	twoTexturesMaterial->AddSampler("BasicSampler", sampleState);
 
 	// Create meshes
@@ -256,28 +270,16 @@ void Game::CreateGeometry()
 	meshes.push_back(quad2Side);
 
 	// Create entities
-	std::shared_ptr<GameEntity> cubeEntity = std::make_shared<GameEntity>(cube, whiteMaterial);
-	std::shared_ptr<GameEntity> cylinderEntity = std::make_shared<GameEntity>(cylinder, blueMaterial);
-	std::shared_ptr<GameEntity> helixEntity = std::make_shared<GameEntity>(helix, greenMaterial);
 	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(sphere, whiteMaterial);
-	std::shared_ptr<GameEntity> torusEntity = std::make_shared<GameEntity>(torus, greenMaterial);
-	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(quad, twoTexturesMaterial);
-	std::shared_ptr<GameEntity> quad2SideEntity = std::make_shared<GameEntity>(quad2Side, twoTexturesMaterial);
+	std::shared_ptr<GameEntity> sphereEntity2 = std::make_shared<GameEntity>(sphere, greenMaterial);
+	std::shared_ptr<GameEntity> sphereEntity3 = std::make_shared<GameEntity>(sphere, blueMaterial);
 
-	cubeEntity->GetTransform()->SetPosition(-9.0f, 0.0f, 0.0f);
-	cylinderEntity->GetTransform()->SetPosition(-6.0f, 0.0f, 0.0f);
-	helixEntity->GetTransform()->SetPosition(-3.0f, 0.0f, 0.0f);
-	torusEntity->GetTransform()->SetPosition(3.0f, 0.0f, 0.0f);
-	quadEntity->GetTransform()->SetPosition(6.0f, 0.0f, 0.0f);
-	quad2SideEntity->GetTransform()->SetPosition(9.0f, 0.0f, 0.0f);
+	sphereEntity2->GetTransform()->SetPosition(-3.0f, 0.0f, 0.0f);
+	sphereEntity3->GetTransform()->SetPosition(3.0f, 0.0f, 0.0f);
 
-	entities.push_back(cubeEntity);
-	entities.push_back(cylinderEntity);
-	entities.push_back(helixEntity);
 	entities.push_back(sphereEntity);
-	entities.push_back(torusEntity);
-	entities.push_back(quadEntity);
-	entities.push_back(quad2SideEntity);
+	entities.push_back(sphereEntity2);
+	entities.push_back(sphereEntity3);
 }
 
 

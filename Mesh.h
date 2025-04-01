@@ -29,6 +29,9 @@ public:
 	// Draw function to set the buffers and draw the geometry
 	void Draw();
 
+	// Takes vertices and calculates tangent data
+	void CalculateTangents(Vertex* verts, int numVerts, unsigned int* indices, int numIndices);
+
 private:
 	//ComPtrs for vertex and index buffer
 	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;

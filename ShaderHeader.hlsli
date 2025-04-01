@@ -21,6 +21,7 @@ struct VertexToPixel
     float2 uv : TEXCOORD;
     float3 normal : NORMAL;
     float3 worldPosition : POSITION;
+    float3 tangent : TANGENT;
 };
 
 // Light struct
@@ -52,6 +53,7 @@ struct VertexShaderInput
     float3 localPosition : POSITION; // XYZ position
     float2 uv : TEXCOORD;
     float3 normal : NORMAL;
+    float3 tangent : TANGENT;
 };
 
 // Lighting functions
@@ -86,7 +88,8 @@ float Attenuate(Light light, float3 worldPos)
     return att * att;
 }
 
-float3 DirectionalLight(Light currentLight, float3 inputNormal, float4 surfaceColor, float3 cameraPosition, float3 worldPosition, float roughness)
+// Calculations for directional lights
+float3 DirectionalLight(Light currentLight, float3 inputNormal, float3 surfaceColor, float3 cameraPosition, float3 worldPosition, float roughness)
 {
     // Calculate directions needed
     float3 lightDirection = normalize(-currentLight.direction);
@@ -97,12 +100,14 @@ float3 DirectionalLight(Light currentLight, float3 inputNormal, float4 surfaceCo
     
     // Specular
     float specular = CalculateSpecularTerm(inputNormal, lightDirection, cameraDirection, roughness);
+    specular *= any(diffuse);
     
     // Apply lighting
     return (surfaceColor * (diffuse + specular)) * currentLight.intensity * currentLight.color;
 }
 
-float3 PointLight(Light currentLight, float3 inputNormal, float4 surfaceColor, float3 cameraPosition, float3 worldPosition, float roughness)
+// Calculations for point lights
+float3 PointLight(Light currentLight, float3 inputNormal, float3 surfaceColor, float3 cameraPosition, float3 worldPosition, float roughness)
 {
     // Calculate directions needed
     float3 lightDirection = normalize(currentLight.position - worldPosition);
@@ -113,6 +118,7 @@ float3 PointLight(Light currentLight, float3 inputNormal, float4 surfaceColor, f
     
     // Specular
     float specular = CalculateSpecularTerm(inputNormal, lightDirection, cameraDirection, roughness);
+    specular *= any(diffuse);
     
     // Attenuation
     float atten = Attenuate(currentLight, worldPosition);
@@ -122,7 +128,8 @@ float3 PointLight(Light currentLight, float3 inputNormal, float4 surfaceColor, f
     
 }
 
-float3 SpotLight(Light currentLight, float3 inputNormal, float4 surfaceColor, float3 cameraPosition, float3 worldPosition, float roughness)
+// Calculations for spotlights
+float3 SpotLight(Light currentLight, float3 inputNormal, float3 surfaceColor, float3 cameraPosition, float3 worldPosition, float roughness)
 {
     float3 lightDirection = normalize(currentLight.position - worldPosition);
     

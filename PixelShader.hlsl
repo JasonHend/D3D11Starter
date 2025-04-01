@@ -2,6 +2,7 @@
 
 // Create sampler and surface texture values
 Texture2D SurfaceTexture : register(t0);
+Texture2D NormalMap : register(t1);
 SamplerState BasicSampler : register(s0);
 
 cbuffer ExternalData : register(b0)
@@ -33,9 +34,22 @@ float4 main(VertexToPixel input) : SV_TARGET
     
 	// Scale and offset UVs
     input.uv = input.uv * scale + offset;
+    
+    // Unpack normal map
+    float3 unpackedNormal = NormalMap.Sample(BasicSampler, input.uv).rgb * 2 - 1;
+    unpackedNormal = normalize(unpackedNormal);
+    
+    // Create the TBN matrix and transform the normal map
+    float3 N = normalize(input.normal);
+    float3 T = normalize(input.tangent);
+    T = normalize(T - N * dot(T, N));
+    float3 B = cross(T, N);
+    float3x3 TBN = float3x3(T, B, N);
+    
+    input.normal = mul(unpackedNormal, TBN);
 	
 	// Adjust texture variables
-    float4 surfaceColor = SurfaceTexture.Sample(BasicSampler, input.uv);
+    float3 surfaceColor = SurfaceTexture.Sample(BasicSampler, input.uv);
     surfaceColor *= colorTint;
     
     // Ambient
