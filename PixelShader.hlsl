@@ -49,8 +49,8 @@ float4 main(VertexToPixel input) : SV_TARGET
     input.normal = mul(unpackedNormal, TBN);
 	
 	// Adjust texture variables
-    float3 surfaceColor = SurfaceTexture.Sample(BasicSampler, input.uv);
-    surfaceColor *= colorTint;
+    float3 surfaceColor = SurfaceTexture.Sample(BasicSampler, input.uv).rgb;
+    surfaceColor *= float3(colorTint.rgb);
     
     // Ambient
     float3 totalLight = ambientLight * surfaceColor;

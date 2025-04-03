@@ -24,6 +24,13 @@ struct VertexToPixel
     float3 tangent : TANGENT;
 };
 
+// Special vertex to pixel for skybox
+struct VertexToPixel_Sky
+{
+    float4 position : SV_Position;
+    float3 sampleDir : DIRECTION;
+};
+
 // Light struct
 struct Light
 {

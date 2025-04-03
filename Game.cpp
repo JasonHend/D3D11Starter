@@ -11,6 +11,7 @@
 #include "Material.h"
 #include "WICTextureLoader.h"
 #include "Lights.h"
+#include "Sky.h"
 
 #include <DirectXMath.h>
 #include <vector>
@@ -93,32 +94,33 @@ void Game::Initialize()
 
 	// Create lighting
 	{
-		ambientLight = XMFLOAT3(0.13f, 0.13f, 0.13f);
+		ambientLight = XMFLOAT3(0.7f, 0.7f, 0.7f);
+
 		directionalLight.type = LIGHT_TYPE_DIRECTIONAL;
 		directionalLight.direction = XMFLOAT3(1, -1, 0);
-		directionalLight.color = XMFLOAT3(0, 0, 1);
+		directionalLight.color = XMFLOAT3(0.56, 0.78, 0.43);
 		directionalLight.intensity = 1.0;
 
-		blueDirectionLight.type = LIGHT_TYPE_DIRECTIONAL;
-		blueDirectionLight.direction = XMFLOAT3(-1, -1, 0);
-		blueDirectionLight.color = XMFLOAT3(0, 1, 0);
-		blueDirectionLight.intensity = 1.0;
+		directionalLight2.type = LIGHT_TYPE_DIRECTIONAL;
+		directionalLight2.direction = XMFLOAT3(-1, -1, 0);
+		directionalLight2.color = XMFLOAT3(0.66, 0.66, 0.66);
+		directionalLight2.intensity = 1.0;
 
-		redDirectionLight.type = LIGHT_TYPE_DIRECTIONAL;
-		redDirectionLight.direction = XMFLOAT3(1, 1, 0);
-		redDirectionLight.color = XMFLOAT3(1, 0, 0);
-		redDirectionLight.intensity = 1.0;
+		directionalLight3.type = LIGHT_TYPE_DIRECTIONAL;
+		directionalLight3.direction = XMFLOAT3(1, 1, 0);
+		directionalLight3.color = XMFLOAT3(0.32, 0.32, 0.32);
+		directionalLight3.intensity = 1.0;
 
-		whiteLight.type = LIGHT_TYPE_POINT;
-		whiteLight.direction = XMFLOAT3(0, -1, 0);
-		whiteLight.color = XMFLOAT3(1, 1, 1);
-		whiteLight.intensity = 1.0;
-		whiteLight.position = XMFLOAT3(0, 4, 0);
-		whiteLight.range = 5;
+		pointLight1.type = LIGHT_TYPE_POINT;
+		pointLight1.direction = XMFLOAT3(0, -1, 0);
+		pointLight1.color = XMFLOAT3(1, 1, 1);
+		pointLight1.intensity = 1.0;
+		pointLight1.position = XMFLOAT3(0, 4, 0);
+		pointLight1.range = 5;
 
 		spotLight.type = LIGHT_TYPE_SPOT;
 		spotLight.direction = XMFLOAT3(0, -1, 0);
-		spotLight.color = XMFLOAT3(1, 0, 1);
+		spotLight.color = XMFLOAT3(1, 0.68, 1);
 		spotLight.intensity = 1.0;
 		spotLight.position = XMFLOAT3(7, 2, 0);
 		spotLight.spotInnerAngle = XMConvertToRadians(10);
@@ -126,9 +128,9 @@ void Game::Initialize()
 		spotLight.range = 8;
 
 		lights.push_back(directionalLight);
-		lights.push_back(blueDirectionLight);
-		lights.push_back(redDirectionLight);
-		lights.push_back(whiteLight);
+		lights.push_back(directionalLight2);
+		lights.push_back(directionalLight3);
+		lights.push_back(pointLight1);
 		lights.push_back(spotLight);
 	}
 }
@@ -180,6 +182,12 @@ void Game::CreateGeometry()
 	std::shared_ptr<SimplePixelShader> customPS1 = std::make_shared<SimplePixelShader>(
 		Graphics::Device, Graphics::Context, FixPath(L"CustomPS1.cso").c_str());
 
+	std::shared_ptr<SimpleVertexShader> skyVS = std::make_shared<SimpleVertexShader>(
+		Graphics::Device, Graphics::Context, FixPath(L"SkyVS.cso").c_str());
+
+	std::shared_ptr<SimplePixelShader> skyPS = std::make_shared<SimplePixelShader>(
+		Graphics::Device, Graphics::Context, FixPath(L"SkyPS.cso").c_str());
+
 	// Create some temporary variables to represent colors
 	// - Not necessary, just makes things more readable
 	XMFLOAT4 red = XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
@@ -218,7 +226,7 @@ void Game::CreateGeometry()
 
 	// Create Materials
 	std::shared_ptr<Material> whiteMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.0f);
-	std::shared_ptr<Material> greenMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.37f);
+	std::shared_ptr<Material> greenMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 1.0f);
 	std::shared_ptr<Material> blueMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 1.0f);
 	std::shared_ptr<Material> twoTexturesMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.68f);
 
@@ -280,6 +288,15 @@ void Game::CreateGeometry()
 	entities.push_back(sphereEntity);
 	entities.push_back(sphereEntity2);
 	entities.push_back(sphereEntity3);
+
+	// Create skybox
+	skybox = std::make_shared<Sky>(cube, sampleState, skyPS, skyVS, 
+		FixPath(L"../../Assets/Textures/Skybox/right.png").c_str(),
+		FixPath(L"../../Assets/Textures/Skybox/left.png").c_str(),
+		FixPath(L"../../Assets/Textures/Skybox/up.png").c_str(),
+		FixPath(L"../../Assets/Textures/Skybox/down.png").c_str(),
+		FixPath(L"../../Assets/Textures/Skybox/front.png").c_str(),
+		FixPath(L"../../Assets/Textures/Skybox/back.png").c_str());
 }
 
 
@@ -327,7 +344,8 @@ void Game::Draw(float deltaTime, float totalTime)
 	// - At the beginning of Game::Draw() before drawing *anything*
 	{
 		// Clear the back buffer (erase what's on screen) and depth buffer
-		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(), backgroundColor);
+		const float black[4] = { 0, 0, 0, 0 };
+		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(), black);
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
@@ -342,6 +360,9 @@ void Game::Draw(float deltaTime, float totalTime)
 			sizeof(Light) * (int)lights.size());
 		entities[i]->Draw(*currentCamera);
 	}
+
+	// After drawing all geometry draw the sky
+	skybox->Draw(*currentCamera);
 
 	// Frame END
 	// - These should happen exactly ONCE PER FRAME

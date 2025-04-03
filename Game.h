@@ -10,6 +10,7 @@
 #include "Camera.h"
 #include "Material.h"
 #include "Lights.h"
+#include "Sky.h"
 
 class Game
 {
@@ -65,10 +66,13 @@ private:
 	// Lighting variables
 	DirectX::XMFLOAT3 ambientLight;
 	Light directionalLight;
-	Light blueDirectionLight;
-	Light redDirectionLight;
-	Light whiteLight;
+	Light directionalLight2;
+	Light directionalLight3;
+	Light pointLight1;
 	Light spotLight;
 	std::vector<Light> lights;
+
+	// Skybox
+	std::shared_ptr<Sky> skybox;
 };
 
