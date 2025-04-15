@@ -94,7 +94,7 @@ void Game::Initialize()
 
 	// Create lighting
 	{
-		ambientLight = XMFLOAT3(0.7f, 0.7f, 0.7f);
+		ambientLight = XMFLOAT3(0.0f, 0.0f, 0.0f);
 
 		directionalLight.type = LIGHT_TYPE_DIRECTIONAL;
 		directionalLight.direction = XMFLOAT3(1, -1, 0);
@@ -104,24 +104,24 @@ void Game::Initialize()
 		directionalLight2.type = LIGHT_TYPE_DIRECTIONAL;
 		directionalLight2.direction = XMFLOAT3(-1, -1, 0);
 		directionalLight2.color = XMFLOAT3(0.66, 0.66, 0.66);
-		directionalLight2.intensity = 1.0;
+		directionalLight2.intensity = 0.0;
 
 		directionalLight3.type = LIGHT_TYPE_DIRECTIONAL;
 		directionalLight3.direction = XMFLOAT3(1, 1, 0);
 		directionalLight3.color = XMFLOAT3(0.32, 0.32, 0.32);
-		directionalLight3.intensity = 1.0;
+		directionalLight3.intensity = 0.0;
 
 		pointLight1.type = LIGHT_TYPE_POINT;
 		pointLight1.direction = XMFLOAT3(0, -1, 0);
 		pointLight1.color = XMFLOAT3(1, 1, 1);
-		pointLight1.intensity = 1.0;
+		pointLight1.intensity = 0.0;
 		pointLight1.position = XMFLOAT3(0, 4, 0);
 		pointLight1.range = 5;
 
 		spotLight.type = LIGHT_TYPE_SPOT;
 		spotLight.direction = XMFLOAT3(0, -1, 0);
 		spotLight.color = XMFLOAT3(1, 0.68, 1);
-		spotLight.intensity = 1.0;
+		spotLight.intensity = 0.0;
 		spotLight.position = XMFLOAT3(7, 2, 0);
 		spotLight.spotInnerAngle = XMConvertToRadians(10);
 		spotLight.spotOuterAngle = XMConvertToRadians(20);
@@ -207,36 +207,66 @@ void Game::CreateGeometry()
 	sampleDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	Graphics::Device.Get()->CreateSamplerState(&sampleDesc, sampleState.GetAddressOf());
 
-	// Load in textures and normals
+	// Load in albedos
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> leavesSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> boulderSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> onyxSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> snowSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> woodSRV;
 
-	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/metalColor1k.png").c_str(), nullptr, metalSRV.GetAddressOf());
-	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/leavesColor1k.png").c_str(), nullptr, leavesSRV.GetAddressOf());
-	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/boulderColor1k.png").c_str(), nullptr, boulderSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Metal/albedo.png").c_str(), nullptr, metalSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Onyx/albedo.png").c_str(), nullptr, onyxSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Snow/albedo.png").c_str(), nullptr, snowSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Wood/albedo.png").c_str(), nullptr, woodSRV.GetAddressOf());
 
+	// Normals
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalNormalSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> leavesNormalSRV;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> boulderNormalSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> onyxNormalSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> snowNormalSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> woodNormalSRV;
 
-	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/metalNormal1k.png").c_str(), nullptr, metalNormalSRV.GetAddressOf());
-	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/leavesNormal1k.png").c_str(), nullptr, leavesNormalSRV.GetAddressOf());
-	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/boulderNormal1k.png").c_str(), nullptr, boulderNormalSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Metal/normal.png").c_str(), nullptr, metalNormalSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Onyx/normal.png").c_str(), nullptr, onyxNormalSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Snow/normal.png").c_str(), nullptr, snowNormalSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Wood/normal.png").c_str(), nullptr, woodNormalSRV.GetAddressOf());
+
+
+	// Roughness
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalRoughnessSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> onyxRoughnessSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> snowRoughnessSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> woodRoughnessSRV;
+
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Metal/roughness.png").c_str(), nullptr, metalRoughnessSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Onyx/roughness.png").c_str(), nullptr, onyxRoughnessSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Snow/roughness.png").c_str(), nullptr, snowRoughnessSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Wood/roughness.png").c_str(), nullptr, woodRoughnessSRV.GetAddressOf());
+	
+	// Metalness
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalMetalnessSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> onyxMetalnessSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> snowMetalnessSRV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> woodMetalnessSRV;
+
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Metal/metalness.png").c_str(), nullptr, metalMetalnessSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Onyx/metalness.png").c_str(), nullptr, onyxMetalnessSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Snow/metalness.png").c_str(), nullptr, snowMetalnessSRV.GetAddressOf());
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Wood/metalness.png").c_str(), nullptr, woodMetalnessSRV.GetAddressOf());
 
 	// Create Materials
-	std::shared_ptr<Material> whiteMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.0f);
-	std::shared_ptr<Material> greenMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 1.0f);
-	std::shared_ptr<Material> blueMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 1.0f);
+	std::shared_ptr<Material> metalMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 1.0f);
+	std::shared_ptr<Material> onyxMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 1.0f);
+	std::shared_ptr<Material> snowMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 1.0f);
+	std::shared_ptr<Material> woodMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.0f);
 	std::shared_ptr<Material> twoTexturesMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.68f);
 
 	std::shared_ptr<Material> debugUV = std::make_shared<Material>(white, vShader, debugUVPS, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.0f);
 	std::shared_ptr<Material> debugNormals = std::make_shared<Material>(white, vShader, debugNormalPS, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.5f);
 	std::shared_ptr<Material> customMaterial = std::make_shared<Material>(white, vShader, customPS1, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.34f);
 
-	materials.push_back(whiteMaterial);
-	materials.push_back(greenMaterial);
-	materials.push_back(blueMaterial);
+	materials.push_back(metalMaterial);
+	materials.push_back(onyxMaterial);
+	materials.push_back(snowMaterial);
+	materials.push_back(woodMaterial);
 	materials.push_back(twoTexturesMaterial);
 
 	materials.push_back(debugUV);
@@ -244,20 +274,32 @@ void Game::CreateGeometry()
 	materials.push_back(customMaterial);
 
 	// Apply textures and normals to materials using pShader
-	whiteMaterial->AddTextureSRV("SurfaceTexture", metalSRV);
-	whiteMaterial->AddTextureSRV("NormalMap", metalNormalSRV);
-	whiteMaterial->AddSampler("BasicSampler", sampleState);
+	metalMaterial->AddTextureSRV("Albedo", metalSRV);
+	metalMaterial->AddTextureSRV("NormalMap", metalNormalSRV);
+	metalMaterial->AddTextureSRV("RoughnessMap", metalRoughnessSRV);
+	metalMaterial->AddTextureSRV("MetalnessMap", metalMetalnessSRV);
+	metalMaterial->AddSampler("BasicSampler", sampleState);
 
-	greenMaterial->AddTextureSRV("SurfaceTexture", leavesSRV);
-	greenMaterial->AddTextureSRV("NormalMap", leavesNormalSRV);
-	greenMaterial->AddSampler("BasicSampler", sampleState);
+	onyxMaterial->AddTextureSRV("Albedo", onyxSRV);
+	onyxMaterial->AddTextureSRV("NormalMap", onyxNormalSRV);
+	onyxMaterial->AddTextureSRV("RoughnessMap", onyxRoughnessSRV);
+	onyxMaterial->AddTextureSRV("MetalnessMap", onyxMetalnessSRV);
+	onyxMaterial->AddSampler("BasicSampler", sampleState);
 
-	blueMaterial->AddTextureSRV("SurfaceTexture", boulderSRV);
-	blueMaterial->AddTextureSRV("NormalMap", boulderNormalSRV);
-	blueMaterial->AddSampler("BasicSampler", sampleState);
+	snowMaterial->AddTextureSRV("Albedo", snowSRV);
+	snowMaterial->AddTextureSRV("NormalMap", snowNormalSRV);
+	snowMaterial->AddTextureSRV("RoughnessMap", snowRoughnessSRV);
+	snowMaterial->AddTextureSRV("MetalnessMap", snowMetalnessSRV);
+	snowMaterial->AddSampler("BasicSampler", sampleState);
 
-	twoTexturesMaterial->AddTextureSRV("SurfaceTexture", leavesSRV);
-	twoTexturesMaterial->AddTextureSRV("SurfaceTexture2", boulderSRV);
+	woodMaterial->AddTextureSRV("Albedo", woodSRV);
+	woodMaterial->AddTextureSRV("NormalMap", woodNormalSRV);
+	woodMaterial->AddTextureSRV("RoughnessMap", woodRoughnessSRV);
+	woodMaterial->AddTextureSRV("MetalnessMap", woodMetalnessSRV);
+	woodMaterial->AddSampler("BasicSampler", sampleState);
+
+	twoTexturesMaterial->AddTextureSRV("SurfaceTexture", onyxSRV);
+	twoTexturesMaterial->AddTextureSRV("SurfaceTexture2", snowSRV);
 	twoTexturesMaterial->AddSampler("BasicSampler", sampleState);
 
 	// Create meshes
@@ -278,16 +320,19 @@ void Game::CreateGeometry()
 	meshes.push_back(quad2Side);
 
 	// Create entities
-	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(sphere, whiteMaterial);
-	std::shared_ptr<GameEntity> sphereEntity2 = std::make_shared<GameEntity>(sphere, greenMaterial);
-	std::shared_ptr<GameEntity> sphereEntity3 = std::make_shared<GameEntity>(sphere, blueMaterial);
+	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(sphere, metalMaterial);
+	std::shared_ptr<GameEntity> sphereEntity2 = std::make_shared<GameEntity>(sphere, onyxMaterial);
+	std::shared_ptr<GameEntity> sphereEntity3 = std::make_shared<GameEntity>(sphere, snowMaterial);
+	std::shared_ptr<GameEntity> sphereEntity4 = std::make_shared<GameEntity>(sphere, woodMaterial);
 
 	sphereEntity2->GetTransform()->SetPosition(-3.0f, 0.0f, 0.0f);
 	sphereEntity3->GetTransform()->SetPosition(3.0f, 0.0f, 0.0f);
+	sphereEntity4->GetTransform()->SetPosition(6.0f, 0.0f, 0.0f);
 
 	entities.push_back(sphereEntity);
 	entities.push_back(sphereEntity2);
 	entities.push_back(sphereEntity3);
+	entities.push_back(sphereEntity4);
 
 	// Create skybox
 	skybox = std::make_shared<Sky>(cube, sampleState, skyPS, skyVS, 
