@@ -6,6 +6,10 @@ Texture2D NormalMap : register(t1);
 Texture2D RoughnessMap : register(t2);
 Texture2D MetalnessMap : register(t3);
 SamplerState BasicSampler : register(s0);
+SamplerComparisonState ShadowSampler : register(s1);
+
+// Texture for shadows
+Texture2D ShadowMap : register(t4);
 
 cbuffer ExternalData : register(b0)
 {
@@ -29,6 +33,21 @@ cbuffer ExternalData : register(b0)
 // --------------------------------------------------------
 float4 main(VertexToPixel input) : SV_TARGET
 {
+    // Check shadow map
+    // Prespective divide
+    input.shadowMapPos /= input.shadowMapPos.w;
+    
+    // Convert to UVs
+    float2 shadowUV = input.shadowMapPos.xy * 0.5f + 0.5f;
+    shadowUV.y = 1 - shadowUV.y;
+    
+    // Grab distances
+    float distToLight = input.shadowMapPos.z;
+    float shadowAmount = ShadowMap.SampleCmpLevelZero(
+        ShadowSampler,
+        shadowUV,
+        distToLight).r;
+    
     int lightCount = 5;
 
     // Adjust normals
@@ -72,7 +91,12 @@ float4 main(VertexToPixel input) : SV_TARGET
         switch (light.type)
         {
             case LIGHT_TYPE_DIRECTIONAL:
-                totalLight += DirectionalLight(light, input.normal, surfaceColor, cameraPosition, input.worldPosition, roughnessValue, metalness);
+                float3 lightResult = DirectionalLight(light, input.normal, surfaceColor, cameraPosition, input.worldPosition, roughnessValue, metalness);
+                if (i == 0)
+                {
+                    lightResult *= shadowAmount;
+                }
+                totalLight += lightResult;
                 break;
             
             case LIGHT_TYPE_POINT:

@@ -22,6 +22,7 @@ struct VertexToPixel
     float3 normal : NORMAL;
     float3 worldPosition : POSITION;
     float3 tangent : TANGENT;
+    float4 shadowMapPos : SHADOW_POSITION;
 };
 
 // Special vertex to pixel for skybox
@@ -156,7 +157,7 @@ float G_SchlickGGX(float3 n, float3 v, float roughness)
 float3 MicrofacetBRDF(float3 n, float3 l, float3 v, float roughness, float3 f0, out float3 F_out)
 {
     // Other vectors
-    float3 h = normalize(v + 1);
+    float3 h = normalize(v + l);
     
     // Run numerator functions
     float D = D_GGX(n, h, roughness);

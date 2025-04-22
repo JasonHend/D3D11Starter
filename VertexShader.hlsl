@@ -7,6 +7,9 @@ cbuffer ExternalData : register(b0)
     float4x4 m4View;
     float4x4 m4Projection;
     float4x4 m4WorldInvTranspose;
+	
+    matrix lightView;
+    matrix lightProjection;
 }
 
 // --------------------------------------------------------
@@ -16,7 +19,7 @@ cbuffer ExternalData : register(b0)
 // - Output is a single struct of data to pass down the pipeline
 // - Named "main" because that's the default the shader compiler looks for
 // --------------------------------------------------------
-VertexToPixel main( VertexShaderInput input )
+VertexToPixel main(VertexShaderInput input )
 {
 	// Set up output struct
 	VertexToPixel output;
@@ -39,6 +42,10 @@ VertexToPixel main( VertexShaderInput input )
 	
 	// Update world position of output
     output.worldPosition = mul(m4World, float4(input.localPosition, 1)).xyz;
+	
+	// Include any shadowing position
+    matrix shadowWVP = mul(lightProjection, mul(lightView, m4World));
+    output.shadowMapPos = mul(shadowWVP, float4(input.localPosition, 1.0f));
 	
 	// Whatever we return will make its way through the pipeline to the
 	// next programmable stage we're using (the pixel shader for now)
