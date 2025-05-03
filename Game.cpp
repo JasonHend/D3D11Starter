@@ -208,6 +208,54 @@ void Game::Initialize()
 			100.0f);
 		XMStoreFloat4x4(&lightProjectionMatrix, lightProj);
 	}
+
+	// Post processing set up
+	{
+		// Set up sampler
+		D3D11_SAMPLER_DESC ppSampDesc = {};
+		ppSampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		ppSampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		ppSampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		ppSampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		ppSampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		Graphics::Device->CreateSamplerState(&ppSampDesc, ppSampler.GetAddressOf());
+
+		// Create texture
+		D3D11_TEXTURE2D_DESC textureDesc = {};
+		textureDesc.Width = Window::Width();
+		textureDesc.Height = Window::Height();
+		textureDesc.ArraySize = 1;
+		textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+		textureDesc.CPUAccessFlags = 0;
+		textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		textureDesc.MipLevels = 1;
+		textureDesc.MiscFlags = 0;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.SampleDesc.Quality = 0;
+		textureDesc.Usage = D3D11_USAGE_DEFAULT;
+
+		// Create the resource
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> ppTexture;
+		Graphics::Device->CreateTexture2D(&textureDesc, 0, ppTexture.GetAddressOf());
+
+		// Create render target view
+		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+		rtvDesc.Format = textureDesc.Format;
+		rtvDesc.Texture2D.MipSlice = 0;
+		rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+		Graphics::Device->CreateRenderTargetView(
+			ppTexture.Get(),
+			&rtvDesc,
+			ppRTV.ReleaseAndGetAddressOf());
+
+		// Create blank SRV
+		Graphics::Device->CreateShaderResourceView(
+			ppTexture.Get(),
+			0,
+			ppSRV.ReleaseAndGetAddressOf());
+
+		blurRadius = std::make_shared<int>(0);
+	}
 }
 
 
@@ -265,6 +313,16 @@ void Game::CreateGeometry()
 
 	shadowVS = std::make_shared<SimpleVertexShader>(
 		Graphics::Device, Graphics::Context, FixPath(L"ShadowVS.cso").c_str());
+
+	// Shaders for post processing
+	ppVS = std::make_shared<SimpleVertexShader>(
+		Graphics::Device, Graphics::Context, FixPath(L"ppVS.cso").c_str());
+
+	blurPS = std::make_shared<SimplePixelShader>(
+		Graphics::Device, Graphics::Context, FixPath(L"blurPS.cso").c_str());
+
+	std::shared_ptr<SimplePixelShader> toonPS = std::make_shared<SimplePixelShader>(
+		Graphics::Device, Graphics::Context, FixPath(L"toonPS.cso").c_str());
 
 	// Create some temporary variables to represent colors
 	// - Not necessary, just makes things more readable
@@ -330,9 +388,13 @@ void Game::CreateGeometry()
 	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Snow/metalness.png").c_str(), nullptr, snowMetalnessSRV.GetAddressOf());
 	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Wood/metalness.png").c_str(), nullptr, woodMetalnessSRV.GetAddressOf());
 
+	// SRV for toon shading
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> toonRampSRV;
+	CreateWICTextureFromFile(Graphics::Device.Get(), Graphics::Context.Get(), FixPath(L"../../Assets/Textures/Snow/toonRamp.png").c_str(), nullptr, toonRampSRV.GetAddressOf());
+
 	// Create Materials
 	std::shared_ptr<Material> metalMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 1.0f);
-	std::shared_ptr<Material> onyxMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 1.0f);
+	std::shared_ptr<Material> onyxMaterial = std::make_shared<Material>(white, vShader, toonPS, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 1.0f);
 	std::shared_ptr<Material> snowMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 1.0f);
 	std::shared_ptr<Material> woodMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 0.0f);
 	std::shared_ptr<Material> twoTexturesMaterial = std::make_shared<Material>(white, vShader, pShader, DirectX::XMFLOAT2(1, 1), DirectX::XMFLOAT2(0, 0), 1.0f);
@@ -361,8 +423,9 @@ void Game::CreateGeometry()
 	onyxMaterial->AddTextureSRV("Albedo", onyxSRV);
 	onyxMaterial->AddTextureSRV("NormalMap", onyxNormalSRV);
 	onyxMaterial->AddTextureSRV("RoughnessMap", onyxRoughnessSRV);
-	onyxMaterial->AddTextureSRV("MetalnessMap", onyxMetalnessSRV);
+	onyxMaterial->AddTextureSRV("RampTexture", toonRampSRV);
 	onyxMaterial->AddSampler("BasicSampler", sampleState);
+	onyxMaterial->AddSampler("ClampSampler", ppSampler);
 
 	snowMaterial->AddTextureSRV("Albedo", snowSRV);
 	snowMaterial->AddTextureSRV("NormalMap", snowNormalSRV);
@@ -451,6 +514,47 @@ void Game::OnResize()
 			cameras[i]->UpdateProjectionMatrix(Window::AspectRatio());
 		}
 	}
+
+	if (!Graphics::Device)
+		return;
+
+	// Reset render targets
+	ppRTV.Reset();
+	ppSRV.Reset();
+
+	// Create texture
+	D3D11_TEXTURE2D_DESC textureDesc = {};
+	textureDesc.Width = Window::Width();
+	textureDesc.Height = Window::Height();
+	textureDesc.ArraySize = 1;
+	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.CPUAccessFlags = 0;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.MipLevels = 1;
+	textureDesc.MiscFlags = 0;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	// Create the resource
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> ppTexture;
+	Graphics::Device->CreateTexture2D(&textureDesc, 0, ppTexture.GetAddressOf());
+
+	// Create render target view
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = textureDesc.Format;
+	rtvDesc.Texture2D.MipSlice = 0;
+	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	Graphics::Device->CreateRenderTargetView(
+		ppTexture.Get(),
+		&rtvDesc,
+		ppRTV.ReleaseAndGetAddressOf());
+
+	// Create blank SRV
+	Graphics::Device->CreateShaderResourceView(
+		ppTexture.Get(),
+		0,
+		ppSRV.ReleaseAndGetAddressOf());
 }
 
 
@@ -491,10 +595,12 @@ void Game::Draw(float deltaTime, float totalTime)
 		const float black[4] = { 0, 0, 0, 0 };
 		Graphics::Context->ClearRenderTargetView(Graphics::BackBufferRTV.Get(), black);
 		Graphics::Context->ClearDepthStencilView(Graphics::DepthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+		
+		// Clear post processing render target and ensure that the correct render target is set
+		Graphics::Context->ClearRenderTargetView(ppRTV.Get(), black);		
+		// For shadows as well
+		Graphics::Context->ClearDepthStencilView(shadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
-
-	// For shadows as well
-	Graphics::Context->ClearDepthStencilView(shadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	// Change state to shadow rendering
 	Graphics::Context->RSSetState(shadowRasterizer.Get());
@@ -532,9 +638,8 @@ void Game::Draw(float deltaTime, float totalTime)
 	viewport.Width = (float)Window::Width();
 	viewport.Height = (float)Window::Height();
 	Graphics::Context->RSSetViewports(1, &viewport);
-	Graphics::Context->OMSetRenderTargets(
-		1,
-		Graphics::BackBufferRTV.GetAddressOf(),
+	Graphics::Context->OMSetRenderTargets(1, 
+		ppRTV.GetAddressOf(), 
 		Graphics::DepthBufferDSV.Get());
 	Graphics::Context->RSSetState(0);
 
@@ -564,6 +669,24 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	// After drawing all geometry draw the sky
 	skybox->Draw(*currentCamera);
+
+	// Anything to do with post processing
+	{
+		Graphics::Context->OMSetRenderTargets(1, Graphics::BackBufferRTV.GetAddressOf(), 0);
+
+		// Set up shaders and set required buffers
+		ppVS->SetShader();
+		blurPS->SetShader();
+		blurPS->SetShaderResourceView("Pixels", ppSRV.Get());
+		blurPS->SetSamplerState("ClampSampler", ppSampler.Get());
+		
+		blurPS->SetInt("blurRadius", *blurRadius);
+		blurPS->SetFloat("pixelWidth", 1.0f / Window::Width());
+		blurPS->SetFloat("pixelHeight", 1.0f / Window::Height());
+		blurPS->CopyAllBufferData();
+
+		Graphics::Context->Draw(3, 0);
+	}
 
 	// Frame END
 	// - These should happen exactly ONCE PER FRAME
@@ -788,6 +911,15 @@ void Game::CustomizeUIContext()
 			}
 			ImGui::PopID();
 		}
+		ImGui::TreePop();
+	}
+
+	// Post processing
+	if (ImGui::TreeNode("Blur"))
+	{
+		// Slider for changing the blur radius
+		ImGui::DragInt("Blur Radius", blurRadius.get(), 1.0f, 0, 15);
+
 		ImGui::TreePop();
 	}
 

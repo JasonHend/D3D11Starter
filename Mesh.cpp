@@ -20,7 +20,7 @@ Mesh::Mesh(Vertex* vertices, size_t numVertices, unsigned int* indices, size_t n
 	this->meshName = meshName;
 
 	// Calculate tangents before creating buffers
-	CalculateTangents(vertices, numVertices, indices, numIndices);
+	CalculateTangents(vertices, this->numVertices, indices, this->numIndices);
 
 	// Creation of vertex buffer
 	{
